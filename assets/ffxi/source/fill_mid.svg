@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="8" height="6" viewBox="0 0 8 6"><defs>
+  <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#b6b3a8"/>
+    <stop offset=".17" stop-color="#807e78"/>
+    <stop offset=".45" stop-color="#55545a"/>
+    <stop offset=".7" stop-color="#303038"/>
+    <stop offset="1" stop-color="#777780"/>
+  </linearGradient>
+  <linearGradient id="well" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#08080c"/>
+    <stop offset=".6" stop-color="#15151e"/>
+    <stop offset="1" stop-color="#26262f"/>
+  </linearGradient>
+  <linearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#cecece"/>
+    <stop offset=".17" stop-color="#ffffff"/>
+    <stop offset=".35" stop-color="#eeeeee"/>
+    <stop offset=".7" stop-color="#c8c8c8"/>
+    <stop offset="1" stop-color="#959595"/>
+  </linearGradient>
+</defs>
+  <path d="M0 0 H8 V6 H0Z" fill="url(#fill)"/>
+  <path d="M0 .5 H8" stroke="#ffffff" stroke-opacity=".28" stroke-width=".5"/>
+</svg>

@@ -1,0 +1,3 @@
+These six textures are original vector assets by Awake, based on the FFXI gauge reference supplied for this project. They are not extracted game textures. The source SVGs and `tools/build_skin.py` reproduce the PNGs through Inkscape at four source pixels per displayed pixel.
+
+The trough caps render at 8 × 14 pixels, surrounding a stretchable center. The neutral frame provides the dark backing, near-black outline, subtle bevel and inner edge highlight. The grayscale fill has 4 × 6 pixel caps and a stretchable center, modulated by the configured resource color. `ffxiGauge.lua` owns all six primitives and positions the fill inside the trough; no text or combat information is baked into the images.

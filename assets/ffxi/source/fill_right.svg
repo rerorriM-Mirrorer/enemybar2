@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="4" height="6" viewBox="0 0 4 6"><defs>
+  <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#b6b3a8"/>
+    <stop offset=".17" stop-color="#807e78"/>
+    <stop offset=".45" stop-color="#55545a"/>
+    <stop offset=".7" stop-color="#303038"/>
+    <stop offset="1" stop-color="#777780"/>
+  </linearGradient>
+  <linearGradient id="well" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#08080c"/>
+    <stop offset=".6" stop-color="#15151e"/>
+    <stop offset="1" stop-color="#26262f"/>
+  </linearGradient>
+  <linearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#cecece"/>
+    <stop offset=".17" stop-color="#ffffff"/>
+    <stop offset=".35" stop-color="#eeeeee"/>
+    <stop offset=".7" stop-color="#c8c8c8"/>
+    <stop offset="1" stop-color="#959595"/>
+  </linearGradient>
+</defs><g transform="translate(4 0) scale(-1 1)">
+  <path d="M4 0 H2 L0 3 L2 6 H4Z" fill="url(#fill)"/>
+  <path d="M4 .5 H2.2 L.65 3" fill="none" stroke="#ffffff"
+        stroke-opacity=".28" stroke-width=".5"/>
+</g></svg>

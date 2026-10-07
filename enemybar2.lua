@@ -24,8 +24,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --]]
 
 _addon.name = 'enemybar2'
-_addon.author = 'mmckee,akaden'
-_addon.version = '1.1.0'
+_addon.author = 'mmckee,akaden,Awake'
+_addon.version = '1.1.1-a.20261007.1'
 _addon.language = 'English'
 _addon.commands = {'enemybar','eb'}
 
@@ -357,6 +357,13 @@ function handle_command(c, ...)
             else
                 windower.add_to_chat(123, 'EnemyBar: not enough arguments for "'..setting..'"')
             end
+        elseif setting == 'skin' then
+            local skin = args[3] and args[3]:lower()
+            if skin == 'ffxi' or skin == 'classic' then
+                set_setting(bar, setting, skin)
+            else
+                windower.add_to_chat(123, 'EnemyBar: skin must be "ffxi" or "classic"')
+            end
         elseif S{'font','stack_dir'}:contains(setting) then
             if args[3] then
                 set_setting(bar, setting, args[3])
@@ -428,7 +435,7 @@ function handle_command(c, ...)
     elseif S{'help','h','man','manual'}:contains(c) then
         helptext = [[Enemy Bar - Command List:')
 1. set/s [setting] [target/t/subtarget/st/aggro/a/all] [value] - set a setting to its value
-    setting: pos(x y)/font/font_size/color(r g b)/width/count/show/show_target_icon/show_debuff/show_dist/show_action/show_target
+    setting: pos(x y)/font/font_size/color(r g b)/skin(ffxi classic)/width/count/show/show_target_icon/show_debuff/show_dist/show_action/show_target
 2. focustarget/ft/f (player_name or id or blank or clear) - create a bar for a particular party member, mob by ID, or by current target (blank), or clear the current focus target
 3. setup/demo/debug/test - toggles setup mode displaying test versions of all options and enabling drag for each frame
 4. help/h/manual/man --Shows this menu.]]
@@ -604,25 +611,25 @@ end
 
 defaults = {}
 defaults.target_bar = {
-    pos={x=650,y=750}, width=600,
-    color={alpha=255,red=255,green=0,blue=0},
+    pos={x=650,y=750}, width=600, skin='ffxi',
+    color={alpha=255,red=255,green=149,blue=151},
     font='Arial', font_size=14,
     show=true, show_target=false, show_target_icon=false,
     show_action=false, show_dist=false, show_debuff=false}
 defaults.subtarget_bar = {
-    pos={x=680,y=700}, width=300,
+    pos={x=680,y=700}, width=300, skin='classic',
     color={alpha=255,red=12,green=50,blue=101},
     font='Arial', font_size=12,
     show=true, show_target=false, show_target_icon=false,
     show_action=false, show_dist=false, show_debuff=false}
 defaults.focustarget_bar = {
-    pos={x=680,y=670}, width=250,
+    pos={x=680,y=670}, width=250, skin='classic',
     color={alpha=255,red=93,green=0,blue=255},
     font='Arial', font_size=12,
     show=true, show_target=false, show_target_icon=false,
     show_action=false, show_dist=false, show_debuff=false}
 defaults.aggro_bar = {
-    pos={x=350,y=550}, width=180,
+    pos={x=350,y=550}, width=180, skin='classic',
     color={alpha=255,red=0,green=150,blue=50},
     font='Arial', font_size=9,
     show=false, show_target=false, show_target_icon=false,

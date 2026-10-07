@@ -1,3 +1,4 @@
+local ffxi_gauge = require('ffxiGauge')
 
 -- Meta class
 bars = {x_res = windower.get_windower_settings().ui_x_res,y_res = windower.get_windower_settings().ui_y_res}
@@ -5,9 +6,10 @@ bars = {x_res = windower.get_windower_settings().ui_x_res,y_res = windower.get_w
 -- Base class method new
 
 function bars.new(bar_settings)
-   o = {}
-   o.width = bar_settings.width 
-   o.color = bar_settings.color 
+   local o = {}
+   o.skin = bar_settings.skin or 'classic'
+   o.width = bar_settings.width
+   o.color = bar_settings.color
    o.font = bar_settings.font
    o.font_size = bar_settings.font_size
    o.show_dist = bar_settings.show_dist
@@ -23,10 +25,14 @@ end
 function bars.destroy(o)
 	if not o then return end
 	o.target_indicator_image:destroy()
-	o.left_cap_image:destroy()
-	o.background_body_image:destroy()
-	o.foreground_body_image:destroy()
-	o.right_cap_image:destroy()
+	if o.gauge then
+		o.gauge:destroy()
+	else
+		o.left_cap_image:destroy()
+		o.background_body_image:destroy()
+		o.foreground_body_image:destroy()
+		o.right_cap_image:destroy()
+	end
 	o.name_text:destroy()
 	o.action_text:destroy()
 	o.attention_arrow_image:destroy()
@@ -45,51 +51,56 @@ function bars.initialize(o)
 			repeatable = {x=1,y=1},
 			draggable = false
 		})
-	o.left_cap_image = images.new({
-			pos = {x=0,y=0},
-			visible = true,
-			color = {alpha=o.color.alpha,red=o.color.red,green=o.color.green,blue=o.color.blue},
-			size = {width=1,height=12},
-			texture = {path=windower.addon_path.. 'bg_cap.png',fit=true},
-			repeatable = {x=1,y=1},
-			draggable = false
-		})
-	o.background_body_image = images.new({
-			pos = {x=0,y=0},
-			visible = true,
-			color = {alpha=o.color.alpha,red=o.color.red,green=o.color.green,blue=o.color.blue},
-			size = {width=o.width,height=12},
-			texture = {path=windower.addon_path.. 'bg_body.png',fit=true},
-			repeatable = {x=1,y=1},
-			draggable = false		
-		})
-	o.foreground_body_image = images.new({
-			pos = {x=0,y=0},
-			visible = true,
-			color = {alpha=o.color.alpha,red=o.color.red,green=o.color.green,blue=o.color.blue},
-			size = {width=o.width,height=12},
-			texture = {path=windower.addon_path.. 'fg_body.png',fit=true},
-			repeatable = {x=1,y=1},
-			draggable = false		
-		})
-	o.right_cap_image = images.new({
-			pos = {x=0,y=0},
-			visible = true,
-			color = {alpha=o.color.alpha,red=o.color.red/2,green=o.color.green/2,blue=o.color.blue/2},
-			size = {width=1,height=12},
-			texture = {path=windower.addon_path.. 'bg_cap.png',fit=true},
-			repeatable = {x=1,y=1},
-			draggable = false		
-		})
+	if o.skin == 'ffxi' then
+		o.gauge = ffxi_gauge.new(o.width, o.color)
+	else
+		o.left_cap_image = images.new({
+				pos = {x=0,y=0},
+				visible = true,
+				color = {alpha=o.color.alpha,red=o.color.red,green=o.color.green,blue=o.color.blue},
+				size = {width=1,height=12},
+				texture = {path=windower.addon_path.. 'bg_cap.png',fit=true},
+				repeatable = {x=1,y=1},
+				draggable = false
+			})
+		o.background_body_image = images.new({
+				pos = {x=0,y=0},
+				visible = true,
+				color = {alpha=o.color.alpha,red=o.color.red,green=o.color.green,blue=o.color.blue},
+				size = {width=o.width,height=12},
+				texture = {path=windower.addon_path.. 'bg_body.png',fit=true},
+				repeatable = {x=1,y=1},
+				draggable = false
+			})
+		o.foreground_body_image = images.new({
+				pos = {x=0,y=0},
+				visible = true,
+				color = {alpha=o.color.alpha,red=o.color.red,green=o.color.green,blue=o.color.blue},
+				size = {width=o.width,height=12},
+				texture = {path=windower.addon_path.. 'fg_body.png',fit=true},
+				repeatable = {x=1,y=1},
+				draggable = false
+			})
+		o.right_cap_image = images.new({
+				pos = {x=0,y=0},
+				visible = true,
+				color = {alpha=o.color.alpha,red=o.color.red/2,green=o.color.green/2,blue=o.color.blue/2},
+				size = {width=1,height=12},
+				texture = {path=windower.addon_path.. 'bg_cap.png',fit=true},
+				repeatable = {x=1,y=1},
+				draggable = false
+			})
+	end
+	local stroke = o.gauge and 12 or 50
 	o.name_text = texts.new('${name|(Name)}: ${hpp|(100)}%', {
 			pos = {x=0,y=0},
-			text = { size=o.font_size,font=o.font,stroke={width=2,alpha=180,red=50,green=50,blue=50}},
+			text = { size=o.font_size,font=o.font,stroke={width=2,alpha=180,red=stroke,green=stroke,blue=stroke}},
 			flags = {bold=true,draggable=false,italic=true},
 			bg = {visible=false}
 		})
 	o.action_text = texts.new('${action|(Action)}', {
 			pos = {x=0,y=0},
-			text = { size=o.font_size*0.8,font=o.font,stroke={width=2,alpha=180,red=50,green=50,blue=50}},
+			text = { size=o.font_size*0.8,font=o.font,stroke={width=2,alpha=180,red=stroke,green=stroke,blue=stroke}},
 			flags = {bold=true,draggable=false,right=true},
 			bg = {visible=false}
 		})
@@ -100,17 +111,17 @@ function bars.initialize(o)
 			size = {width=12,height=12},
 			texture = {path=windower.addon_path.. 'attention.png',fit=true},
 			repeatable = {x=1,y=1},
-			draggable = false		
+			draggable = false
 		})
 	o.target_name_text = texts.new('${pc|(Target)}', {
 			pos = {x=0,y=0},
-			text = { size=o.font_size,font=o.font,stroke={width=2,alpha=180,red=50,green=50,blue=50}},
+			text = { size=o.font_size,font=o.font,stroke={width=2,alpha=180,red=stroke,green=stroke,blue=stroke}},
 			flags = {bold=true,draggable=false},
 			bg = {visible=false}
 		})
 	o.distance_text = texts.new('${dist|(0.0)}\'', {
 			pos = {x=0,y=0},
-			text = { size=o.font_size*0.8,font=o.font,stroke={width=2,alpha=180,red=50,green=50,blue=50}},
+			text = { size=o.font_size*0.8,font=o.font,stroke={width=2,alpha=180,red=stroke,green=stroke,blue=stroke}},
 			flags = {bold=true,draggable=false,right=true},
 			bg = {visible=false}
 		})
@@ -120,7 +131,7 @@ function bars.initialize(o)
 			size = {width=18,height=12},
 			texture = {path=windower.addon_path.. 'icons/sleep.png',fit=true},
 			repeatable = {x=1,y=1},
-			draggable = false		
+			draggable = false
 		})
 end
 
@@ -129,10 +140,14 @@ function bars.move(o,x,y)
 	o.x = x
 	o.y = y
 	o.target_indicator_image:pos(x-16,y)
-	o.left_cap_image:pos(x,y)
-	o.background_body_image:pos(x+1,y)
-	o.foreground_body_image:pos(x+1,y)
-	o.right_cap_image:pos(x+1+o.width,y)
+	if o.gauge then
+		o.gauge:move(x,y)
+	else
+		o.left_cap_image:pos(x,y)
+		o.background_body_image:pos(x+1,y)
+		o.foreground_body_image:pos(x+1,y)
+		o.right_cap_image:pos(x+1+o.width,y)
+	end
 	o.name_text:pos(x+math.floor(o.width/100), y+3+(14-o.font_size)/4)
 	o.action_text:pos(-(bars.x_res-(x+o.width-math.floor(o.width/100))),y-o.font_size+2)
 	o.attention_arrow_image:pos(x+o.width+8, y)
@@ -144,10 +159,14 @@ end
 function bars.show(o)
 	if not o then return end
 	if o.show_dist then	o.distance_text:show() end
-	o.left_cap_image:show()
-	o.background_body_image:show()
-	o.foreground_body_image:show()
-	o.right_cap_image:show()
+	if o.gauge then
+		o.gauge:show()
+	else
+		o.left_cap_image:show()
+		o.background_body_image:show()
+		o.foreground_body_image:show()
+		o.right_cap_image:show()
+	end
 	o.name_text:show()
 end
 
@@ -155,10 +174,14 @@ function bars.hide(o)
 	if not o then return end
 	o.distance_text:hide()
 	o.target_indicator_image:hide()
-	o.left_cap_image:hide()
-	o.background_body_image:hide()
-	o.foreground_body_image:hide()
-	o.right_cap_image:hide()
+	if o.gauge then
+		o.gauge:hide()
+	else
+		o.left_cap_image:hide()
+		o.background_body_image:hide()
+		o.foreground_body_image:hide()
+		o.right_cap_image:hide()
+	end
 	o.name_text:hide()
 	o.action_text:hide()
 	o.attention_arrow_image:hide()
@@ -168,8 +191,12 @@ end
 
 function bars.set_value(o, v)
 	if not o then return end
-	o.foreground_body_image:width(v*o.width)
-	o.background_body_image:width(o.width)
+	if o.gauge then
+		o.gauge:set_value(v)
+	else
+		o.foreground_body_image:width(v*o.width)
+		o.background_body_image:width(o.width)
+	end
 end
 
 function bars.set_name_color(o, color)
@@ -262,12 +289,16 @@ function bars.update_status(o, status)
 	o.target_status_image:hide()
 end
 
+local function gauge_hover(o, x, y)
+	if o.gauge then return o.gauge:hover(x,y) end
+	return o.foreground_body_image:hover(x,y) or
+	       o.background_body_image:hover(x,y) or
+	       o.left_cap_image:hover(x,y) or o.right_cap_image:hover(x,y)
+end
+
 function bars.hover(o, x, y)
 	if not o then return false end
-	return o.foreground_body_image:hover(x,y) or 
-		   o.background_body_image:hover(x,y) or 
-		   o.left_cap_image:hover(x,y) or 
-		   o.right_cap_image:hover(x,y) or
+	return gauge_hover(o,x,y) or
 		   o.distance_text:hover(x,y) or
 		   o.target_indicator_image:hover(x,y) or
 		   o.name_text:hover(x,y) or
