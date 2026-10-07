@@ -25,7 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 _addon.name = 'enemybar2'
 _addon.author = 'mmckee,akaden,Awake'
-_addon.version = '1.1.1-a.20261007.2'
+_addon.version = '1.1.1-a.20261007.3'
 _addon.language = 'English'
 _addon.commands = {'enemybar','eb'}
 
@@ -113,7 +113,7 @@ function update_bar(bar, target, show)
             elseif st and st.id == target.id then
                 target_type = 2
             end
-            bars.update_target(bar, target.name, target.hpp, dist, target_type)
+            bars.update_target(bar, target.name, target.hpp, dist, target_type, target.id)
 
             local action = tracked_actions[target.id]
             if action and not action.complete then
@@ -157,6 +157,7 @@ function update_aggro_bars(show)
         end
     else
         local ordered_aggro = get_ordered_aggro()
+        local selected = settings.target_bar.show and windower.ffxi.get_mob_by_target('t')
 
         local e_bar_i = 1
         if show and not state.in_cs then
@@ -165,9 +166,11 @@ function update_aggro_bars(show)
                     break
                 end
                 local bar = aggro_bars[e_bar_i]
-                target = windower.ffxi.get_mob_by_id(v.mob)
-                update_bar(bar, target, show)
-                e_bar_i = e_bar_i + 1
+                local target = windower.ffxi.get_mob_by_id(v.mob)
+                if target and (not selected or selected.id ~= target.id) then
+                    update_bar(bar, target, show)
+                    e_bar_i = e_bar_i + 1
+                end
             end
         end
         -- hide bars not updated (all of them, if show is off)
@@ -363,6 +366,14 @@ function handle_command(c, ...)
                 set_setting(bar, setting, skin)
             else
                 windower.add_to_chat(123, 'EnemyBar: skin must be "ffxi" or "classic"')
+            end
+        elseif setting == 'background_alpha' or setting == 'animation_duration' then
+            local value = tonumber(args[3])
+            local maximum = setting == 'background_alpha' and 255 or 2
+            if value and value >= 0 and value <= maximum then
+                set_setting(bar, setting, value)
+            else
+                windower.add_to_chat(123, 'EnemyBar: '..setting..' must be between 0 and '..maximum)
             end
         elseif S{'font','stack_dir'}:contains(setting) then
             if args[3] then
@@ -611,28 +622,32 @@ end
 
 defaults = {}
 defaults.target_bar = {
+    background_alpha=128, animation_duration=0.18,
     pos={x=650,y=750}, width=600, skin='ffxi',
     color={alpha=255,red=255,green=149,blue=151},
     font='Arial', font_size=14,
     show=true, show_target=false, show_target_icon=false,
     show_action=false, show_dist=false, show_debuff=false}
 defaults.subtarget_bar = {
+    background_alpha=128, animation_duration=0.18,
     pos={x=680,y=700}, width=300, skin='classic',
     color={alpha=255,red=12,green=50,blue=101},
     font='Arial', font_size=12,
     show=true, show_target=false, show_target_icon=false,
     show_action=false, show_dist=false, show_debuff=false}
 defaults.focustarget_bar = {
+    background_alpha=128, animation_duration=0.18,
     pos={x=680,y=670}, width=250, skin='classic',
     color={alpha=255,red=93,green=0,blue=255},
     font='Arial', font_size=12,
     show=true, show_target=false, show_target_icon=false,
     show_action=false, show_dist=false, show_debuff=false}
 defaults.aggro_bar = {
-    pos={x=350,y=550}, width=180, skin='classic',
-    color={alpha=255,red=0,green=150,blue=50},
+    background_alpha=128, animation_duration=0.18,
+    pos={x=350,y=550}, width=180, skin='ffxi',
+    color={alpha=255,red=209,green=224,blue=151},
     font='Arial', font_size=9,
-    show=false, show_target=false, show_target_icon=false,
+    show=true, show_target=false, show_target_icon=false,
     show_action=false, show_dist=false, show_debuff=false,
     count=6, stack_dir='down', stack_padding = 27}
 settings_old = config.load({})

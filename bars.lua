@@ -8,6 +8,8 @@ bars = {x_res = windower.get_windower_settings().ui_x_res,y_res = windower.get_w
 function bars.new(bar_settings)
    local o = {}
    o.skin = bar_settings.skin or 'classic'
+   o.background_alpha = bar_settings.background_alpha or 128
+   o.animation_duration = bar_settings.animation_duration or 0.18
    o.width = bar_settings.width
    o.color = bar_settings.color
    o.font = bar_settings.font
@@ -53,7 +55,8 @@ function bars.initialize(o)
 			draggable = false
 		})
 	if o.skin == 'ffxi' then
-		o.gauge = ffxi_gauge.new(o.width, o.color)
+		o.gauge = ffxi_gauge.new(o.width, o.color, {
+            background_alpha=o.background_alpha, animation_duration=o.animation_duration})
 	else
 		o.left_cap_image = images.new({
 				pos = {x=0,y=0},
@@ -173,6 +176,7 @@ end
 
 function bars.hide(o)
 	if not o then return end
+    o.target_id = nil
 	o.distance_text:hide()
 	o.target_indicator_image:hide()
 	if o.gauge then
@@ -190,10 +194,10 @@ function bars.hide(o)
 	o.target_status_image:hide()
 end
 
-function bars.set_value(o, v)
+function bars.set_value(o, v, immediate)
 	if not o then return end
 	if o.gauge then
-		o.gauge:set_value(v)
+		o.gauge:set_value(v, immediate)
 	else
 		o.foreground_body_image:width(v*o.width)
 		o.background_body_image:width(o.width)
@@ -206,11 +210,13 @@ function bars.set_name_color(o, color)
 	o.action_text:color(color.red, color.green, color.blue)
 end
 
-function bars.update_target(o, name, hpp, dist, target_type)
+function bars.update_target(o, name, hpp, dist, target_type, target_id)
 	if not o then return end
 	o.name_text.name = name
 	o.name_text.hpp = hpp
-	bars.set_value(o, hpp/100)
+    local identity = target_id or name
+	bars.set_value(o, hpp/100, o.target_id ~= identity)
+    o.target_id = identity
 
 	o.distance_text.dist = string.format('%.1f', dist)
 

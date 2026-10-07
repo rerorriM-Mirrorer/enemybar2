@@ -1,5 +1,5 @@
 -- Awake: native menu/gauge slices, with separate trough and fill pieces.
--- Only the centers stretch. No combat or animation state here.
+-- Only the centers stretch; combat identity stays in bars.lua.
 local images = require('images')
 local gauge = {}
 local methods = {}
@@ -16,14 +16,19 @@ local function image(name, color)
     })
 end
 
-function gauge.new(width, color)
+function gauge.new(width, color, options)
+    options = options or {}
     local self = setmetatable({
         width=math.max(16, width+2), x=0, y=0, value=1, visible=false,
+        duration=options.animation_duration or 0,
+        clock=options.clock or os.clock, target_value=1,
     }, methods)
     -- The shell is deliberately neutral, independent of the resource tint.
     local shell = {alpha=color.alpha, red=255, green=255, blue=255}
     self.trough = {
-        image('trough_left', shell), image('trough_mid', shell),
+        image('trough_left', shell), image('trough_mid', {
+            alpha=math.floor((color.alpha or 255)*(options.background_alpha or 128)/255+0.5),
+            red=255, green=255, blue=255}),
         image('trough_right', shell),
     }
     self.fill = {
@@ -45,10 +50,23 @@ function methods:move(x, y)
     self:layout_fill()
 end
 
-function methods:set_value(value)
+function methods:advance()
+    if not self.started_at then return end
+    local progress = math.min(1, math.max(0, (self.clock()-self.started_at)/self.duration))
+    self.value = self.start_value+(self.target_value-self.start_value)*progress
+    if progress == 1 then self.started_at = nil end
+end
+
+function methods:set_value(value, immediate)
     value = math.max(0, math.min(1, value))
-    if self.value == value then return end
-    self.value = value
+    if immediate or self.duration <= 0 then
+        self.value, self.target_value, self.started_at = value, value, nil
+    elseif self.target_value ~= value then
+        self:advance()
+        self.start_value, self.started_at, self.target_value = self.value, self.clock(), value
+    else
+        self:advance()
+    end
     self:layout_fill()
 end
 
@@ -76,6 +94,7 @@ end
 
 function methods:show()
     self.visible = true
+    self:advance()
     -- Texture loading can restore a primitive's source-image dimensions
     -- after construction. The images library caches our requested sizes,
     -- so width() cannot detect that reset. Reassert all six sizes on draw,

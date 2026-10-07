@@ -2,7 +2,9 @@
 
 This is an addon for Windower4 for FFXI. It creates a big health bar for the target to make it easy to see.
 
-The `ffxi-bar-skin-2026-10-07` branch contains the main-target gauge prototype. Revision `1.1.1-a.20261007.2` uses the actual `menu/gauge` texture extracted from the supplied `51.DAT`: small native bevelled caps and the native pale body shading, with a dark backing for the empty portion. The fill occupies more of the gauge height. Both trough and fill retain separate left, center and right pieces, and the fill uses the configured resource color. The main target uses this skin by default; other frames retain the classic skin for this test.
+The `ffxi-bar-skin-2026-10-07` branch contains the native gauge prototype. Revision `1.1.1-a.20261007.3` uses the actual `menu/gauge` texture extracted from the supplied `51.DAT`. The empty center is now approximately 50% opaque (128/255); native caps and colored fill retain full opacity. Main target and aggro bars use the native skin by default, with HP pink and pale MP green respectively. Subtarget and focus retain the classic skin.
+
+Native HP fills slide to a new value over 0.18 seconds in either direction. Repeated HP samples do not restart the slide; an interrupted slide continues from the displayed edge. First appearance, target changes and aggro-row reassignment snap immediately, using monster IDs rather than names. The displayed HP percentage remains current. The aggro stack omits the primary target while its main bar is enabled and skips missing monsters without consuming rows.
 
 ![Native gauge skin, rendered from the shipped assets](docs/ffxi-bar-preview.png)
 
@@ -16,12 +18,15 @@ To install the testing package, merge its `enemybar2` directory into `Windower/a
 //lua reload enemybar2
 //eb set skin t ffxi
 //eb set color t 255 149 151
+//eb set skin a ffxi
+//eb set color a 209 224 151
+//eb set show a on
 //eb setup
 ```
 
 Use `//eb setup` again to return to live targeting. Setup retains the existing drag and Ctrl-snap controls. If the saved position is outside the current viewport, `//eb set pos t 120 120` brings the test gauge into view. First reload while targeting a full-HP NPC or enemy, without entering setup or dragging: the entire gauge should appear at the saved size immediately. Then test partial and empty HP, switching targets, clearing the target, dragging, and reloading. `//eb set skin t classic` restores the original renderer. Both skins use the same existing width/color commands.
 
-This pass changes the gauge renderer and its text outline only. Combat tracking, action/attention displays, debuff handling, text placement and HP update timing retain their existing behavior. Distance, action and target indicators remain off by default. Gauge geometry, deferred texture-size recovery, command and bar lifecycle tests pass outside the client; visual filtering and actual game behavior still need a Windower/FFXI test.
+Combat tracking, action/attention displays, debuff handling and text placement retain their existing behavior. Distance, action and target indicators remain off by default. Offline tests cover geometry, deferred texture-size recovery, animation, target identity, aggro selection, commands and cleanup; visual filtering and actual game behavior still need a Windower/FFXI test.
 
 Developers can rebuild the six PNG pieces with `python tools/build_skin.py` (Python 3 and Pillow; uses the checked-in native atlas), and run `lua tests/gauge_spec.lua` from the repository root. To extract again from the supplied DAT, use `python tools/build_skin.py --dat /path/to/51.DAT`. The tests check zero/tiny/full HP, fixed shell dimensions, delayed source-size resets at unchanged HP, hidden initial state, movement and hover, both renderers, repeated recreation and complete primitive cleanup.
 
@@ -37,6 +42,8 @@ target_frame = **t**arget/**s**ub**t**arget/**f**ocus**t**arget/**a**ggro/all. S
 | //eb **s**et pos *target_frame* x y | Moves a target frame to a specified position |
 | //eb **s**et color *target_frame* red green blue | Specifies the hp bar color for the given target frame |
 | //eb **s**et skin *target_frame* ffxi/classic | Selects the new gauge skin or the original renderer for a frame. |
+| //eb **s**et background_alpha *target_frame* 0..255 | Native empty-trough opacity; default 128 (about 50%). Caps and fill are unaffected. |
+| //eb **s**et animation_duration *target_frame* 0..2 | Native HP slide duration in seconds; default 0.18. Zero disables animation. |
 | //eb **s**et count *target_frame* i | Specifies the number of aggro'd monsters to display in the aggro frame |
 | //eb **s**et stack_dir *target_frame* up/down | Specifies the stack direction of the aggro frame. Up stacks upwards, down stacks downwards |
 | //eb **s**et stack_padding *target_frame* i | Specifies the distance between the target bars in the aggro frame |
