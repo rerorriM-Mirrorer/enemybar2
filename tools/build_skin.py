@@ -1,84 +1,81 @@
-"""Awake: reproducible vector sources and PNGs for the FFXI-inspired skin.
+"""Awake: extract menu/gauge from a supplied FFXI menu DAT and build slices.
 
-Run with Python 3 and Inkscape. These are original vector assets guided by
-the supplied FFXI screenshot, not claimed to be extracted DAT textures.
+    python tools/build_skin.py --dat /path/to/51.DAT
+
+Without --dat, rebuild from the checked-in, unmodified gauge atlas.
+Requires Pillow. The DAT itself is read only and is not included in the addon.
 """
 from pathlib import Path
-import subprocess
+import argparse
+import hashlib
+import json
+import struct
+
+from PIL import Image, ImageChops
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / "assets" / "ffxi"
 SOURCE = ASSETS / "source"
-DEFS = '''<defs>
-  <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0" stop-color="#b6b3a8"/>
-    <stop offset=".17" stop-color="#807e78"/>
-    <stop offset=".45" stop-color="#55545a"/>
-    <stop offset=".7" stop-color="#303038"/>
-    <stop offset="1" stop-color="#777780"/>
-  </linearGradient>
-  <linearGradient id="well" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0" stop-color="#08080c"/>
-    <stop offset=".6" stop-color="#15151e"/>
-    <stop offset="1" stop-color="#26262f"/>
-  </linearGradient>
-  <linearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0" stop-color="#cecece"/>
-    <stop offset=".17" stop-color="#ffffff"/>
-    <stop offset=".35" stop-color="#eeeeee"/>
-    <stop offset=".7" stop-color="#c8c8c8"/>
-    <stop offset="1" stop-color="#959595"/>
-  </linearGradient>
-</defs>'''
-
-CAP = '''
-  <path d="M8 .5 H5 L.5 7 L5 13.5 H8Z" fill="#07070a"/>
-  <path d="M8 1.5 H5.5 L1.5 7 L5.5 12.5 H8Z" fill="url(#rim)"/>
-  <path d="M8 3 H6 L3 7 L6 11 H8Z" fill="url(#well)"/>
-  <path d="M8 3.25 H6.1 L3.3 7" fill="none" stroke="#e4e0d7"
-        stroke-opacity=".17" stroke-width=".5"/>
-'''
-MID = '''
-  <path d="M0 .5 H8 V13.5 H0Z" fill="#07070a"/>
-  <path d="M0 1.5 H8 V12.5 H0Z" fill="url(#rim)"/>
-  <path d="M0 3 H8 V11 H0Z" fill="url(#well)"/>
-  <path d="M0 3.25 H8" stroke="#e4e0d7" stroke-opacity=".17" stroke-width=".5"/>
-'''
-FILL_CAP = '''
-  <path d="M4 0 H2 L0 3 L2 6 H4Z" fill="url(#fill)"/>
-  <path d="M4 .5 H2.2 L.65 3" fill="none" stroke="#ffffff"
-        stroke-opacity=".28" stroke-width=".5"/>
-'''
-FILL_MID = '''
-  <path d="M0 0 H8 V6 H0Z" fill="url(#fill)"/>
-  <path d="M0 .5 H8" stroke="#ffffff" stroke-opacity=".28" stroke-width=".5"/>
-'''
 
 
-def build():
-    SOURCE.mkdir(parents=True, exist_ok=True)
-    pieces = {
-        "trough_left": (8, 14, CAP),
-        "trough_mid": (8, 14, MID),
-        "trough_right": (8, 14, '<g transform="translate(8 0) scale(-1 1)">'+CAP+'</g>'),
-        "fill_left": (4, 6, FILL_CAP),
-        "fill_mid": (8, 6, FILL_MID),
-        "fill_right": (4, 6, '<g transform="translate(4 0) scale(-1 1)">'+FILL_CAP+'</g>'),
-    }
-    for name, (width, height, content) in pieces.items():
-        source = SOURCE / (name + ".svg")
-        source.write_text(
-            '<svg xmlns="http://www.w3.org/2000/svg" '
-            f'width="{width}" height="{height}" viewBox="0 0 {width} {height}">'
-            + DEFS + content + '</svg>\n', encoding="utf-8")
-        # Four source pixels per displayed pixel preserve the diagonal caps.
-        subprocess.run([
-            "inkscape", str(source), "--export-type=png",
-            "--export-filename="+str(ASSETS / (name+".png")),
-            "--export-width="+str(width*4),
-            "--export-height="+str(height*4),
-        ], check=True, capture_output=True)
+def extract(path):
+    data = path.read_bytes()
+    if data[:4] != b"menu":
+        raise ValueError("Expected a menu DAT")
+    offset = 32
+    while offset + 16 <= len(data):
+        header = struct.unpack_from("<I", data, offset + 4)[0]
+        block_type = header & 0x7F
+        size = ((header >> 7) & 0x7FFFF) * 16
+        if block_type == 0:
+            break
+        if size < 16 or offset + size > len(data):
+            raise ValueError("Invalid DAT block size")
+        if block_type == 0x20 and data[offset+17:offset+33] == b"menu    gauge   ":
+            version, width, height = struct.unpack_from("<III", data, offset+33)
+            if data[offset+16] != 0xA1 or version != 40 or (width, height) != (64, 64):
+                raise ValueError("Expected the native 64x64 DXT gauge texture")
+            fourcc = data[offset+73:offset+77]
+            length = struct.unpack_from("<I", data, offset+77)[0]
+            if fourcc != b"1TXD" or length != 2048 or 85+length > size:
+                raise ValueError("Expected the native DXT1 gauge payload")
+            atlas = Image.frombytes("RGBA", (width, height),
+                                    data[offset+85:offset+85+length], "bcn", 1)
+            SOURCE.mkdir(parents=True, exist_ok=True)
+            atlas.save(SOURCE / "menu-gauge.png")
+            metadata = {
+                "source_name": path.name,
+                "source_sha256": hashlib.sha256(data).hexdigest(),
+                "block_offset": hex(offset),
+                "texture": "menu/gauge",
+                "size": [width, height],
+                "crops_xywh": {"body": [0, 0, 64, 8],
+                               "left_cap": [0, 8, 4, 8], "right_cap": [4, 8, 4, 8]},
+            }
+            (SOURCE / "provenance.json").write_text(json.dumps(metadata, indent=2)+"\n")
+            return atlas
+        offset += size
+    raise ValueError("menu/gauge was not found in this DAT")
+
+
+def build(atlas):
+    body = atlas.crop((0, 0, 64, 8))
+    # Preserve native cap pixels and the body's horizontal/vertical shading.
+    atlas.crop((0, 8, 4, 16)).save(ASSETS / "trough_left.png")
+    atlas.crop((4, 8, 8, 16)).save(ASSETS / "trough_right.png")
+    # The game places its translucent empty gauge over a menu background.
+    # Give a floating enemy gauge its own dark backing under that texture.
+    empty = ImageChops.multiply(body, Image.new("RGBA", body.size, (255, 255, 255, 48)))
+    Image.alpha_composite(Image.new("RGBA", body.size, (12, 12, 16, 255)), empty).save(
+        ASSETS / "trough_mid.png")
+    body.crop((0, 0, 2, 8)).save(ASSETS / "fill_left.png")
+    body.crop((2, 0, 62, 8)).save(ASSETS / "fill_mid.png")
+    body.crop((62, 0, 64, 8)).save(ASSETS / "fill_right.png")
 
 
 if __name__ == "__main__":
-    build()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--dat", type=Path)
+    args = parser.parse_args()
+    atlas = extract(args.dat) if args.dat else Image.open(SOURCE / "menu-gauge.png").convert("RGBA")
+    build(atlas)

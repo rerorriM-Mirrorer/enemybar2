@@ -1,0 +1,30 @@
+{
+  "source_name": "51.DAT",
+  "source_sha256": "04101ec2bfb642ee6d99a9946796c2c3e424fc1a5c45c69a6b8a73ea992d925d",
+  "block_offset": "0x202e00",
+  "texture": "menu/gauge",
+  "size": [
+    64,
+    64
+  ],
+  "crops_xywh": {
+    "body": [
+      0,
+      0,
+      64,
+      8
+    ],
+    "left_cap": [
+      0,
+      8,
+      4,
+      8
+    ],
+    "right_cap": [
+      4,
+      8,
+      4,
+      8
+    ]
+  }
+}

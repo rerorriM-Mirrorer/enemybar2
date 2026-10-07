@@ -1,5 +1,6 @@
 -- Run from the repository root with Lua 5.1+ (no game client required).
--- These stubs model the images/texts API, not Direct3D rendering.
+-- These stubs model the images/texts API and a deferred texture-size reset;
+-- they do not claim to reproduce Direct3D filtering.
 local live = {}
 local function primitive(settings)
     local p = {settings=settings, showing=settings.visible or false}
@@ -8,6 +9,7 @@ local function primitive(settings)
     function p:size(w,h)
         assert(w >= 0 and h >= 0, 'negative primitive size')
         self.w,self.h=w,h
+        self.render_w,self.render_h=w,h
     end
     function p:width(w) if w then self.w=w end return self.w or self.settings.size.width end
     function p:visible(v) if v ~= nil then self.showing=v end return self.showing end
@@ -45,18 +47,18 @@ for _, width in ipairs({1,16,180,300,600}) do
     assert(not g:hover(100,202))
     for _, value in ipairs({0,.0001,.01,.53,1,2,-1}) do
         g:set_value(value)
-        local filled=(g.width-8)*math.max(0,math.min(1,value))
+        local filled=(g.width-12)*math.max(0,math.min(1,value))
         local total=0
         for _, part in ipairs(g.fill) do
             total=total+part:width()
-            assert(part.x>=g.x+4-1e-9)
-            assert(part.x+part:width()<=g.x+4+filled+1e-9,
+            assert(part.x>=g.x+6-1e-9)
+            assert(part.x+part:width()<=g.x+6+filled+1e-9,
                 'fill must not exceed the HP proportion')
             assert(part:visible()==(part:width()>0 and value>0))
         end
         assert(math.abs(total-filled)<1e-9)
-        assert(g.trough[1]:width()==8 and g.trough[3]:width()==8)
-        assert(g.fill[1]:width()<=4 and g.fill[3]:width()<=4)
+        assert(g.trough[1]:width()==6 and g.trough[3]:width()==6)
+        assert(g.fill[1]:width()<=3 and g.fill[3]:width()<=3)
         assert(g.fill[2].x==g.fill[1].x+g.fill[1]:width())
         assert(math.abs(g.fill[3].x-g.fill[2].x-g.fill[2]:width())<1e-9)
     end
@@ -66,7 +68,22 @@ for _, width in ipairs({1,16,180,300,600}) do
     g:hide(); g:set_value(.7)
     for _, part in ipairs(g.fill) do assert(not part:visible()) end
     g:move(51,60)
-    assert(g.fill[1].x==55 and g.fill[1].y==63)
+    assert(g.fill[1].x==57 and g.fill[1].y==61)
+    -- Simulate texture loading changing GPU sizes while the Lua-side cached
+    -- dimensions still look correct. No HP change and no dragging occurs.
+    for _, value in ipairs({1,.5,0}) do
+        g:set_value(value); g:show()
+        for _, parts in ipairs({g.trough,g.fill}) do
+            for _, part in ipairs(parts) do part.render_w,part.render_h=32,56 end
+        end
+        g:show(); g:set_value(value)
+        for _, parts in ipairs({g.trough,g.fill}) do
+            for _, part in ipairs(parts) do
+                assert(part.render_w==part.w and part.render_h==part.h,
+                    'drawing must recover source-size resets at unchanged HP')
+            end
+        end
+    end
     g:destroy()
     assert(count_live()==0)
 end
@@ -83,6 +100,7 @@ for _=1,10 do
     local modern, classic = new_bar('ffxi'), new_bar('classic')
     assert(o==sentinel, 'bar creation must not overwrite global o')
     assert(modern.gauge and not classic.gauge)
+    assert(not modern.name_text:visible() and not classic.name_text:visible())
     bars.show(modern); bars.show(classic)
     bars.update_target(modern,'Rabbit',0,12.1,1)
     bars.update_target(classic,'Rabbit',50,12.1,1)

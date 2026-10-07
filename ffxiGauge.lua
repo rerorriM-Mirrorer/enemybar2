@@ -1,5 +1,5 @@
--- Awake: a shared three-piece shell and three-piece fill. Endcaps retain
--- their shape; only the centers stretch. No combat or animation state here.
+-- Awake: native menu/gauge slices, with separate trough and fill pieces.
+-- Only the centers stretch. No combat or animation state here.
 local images = require('images')
 local gauge = {}
 local methods = {}
@@ -36,12 +36,12 @@ end
 
 function methods:move(x, y)
     self.x, self.y = x, y
-    self.trough[1]:pos(x, y-1)
-    self.trough[1]:size(8, 14)
-    self.trough[2]:pos(x+8, y-1)
-    self.trough[2]:size(self.width-16, 14)
-    self.trough[3]:pos(x+self.width-8, y-1)
-    self.trough[3]:size(8, 14)
+    self.trough[1]:pos(x, y)
+    self.trough[1]:size(6, 12)
+    self.trough[2]:pos(x+6, y)
+    self.trough[2]:size(self.width-12, 12)
+    self.trough[3]:pos(x+self.width-6, y)
+    self.trough[3]:size(6, 12)
     self:layout_fill()
 end
 
@@ -53,15 +53,15 @@ function methods:set_value(value)
 end
 
 function methods:layout_fill()
-    local filled = (self.width-8)*self.value
+    local filled = (self.width-12)*self.value
     -- A nearly empty bar must not retain two full-width caps or overfill.
-    local cap = math.min(4, filled/2)
-    self.fill[1]:pos(self.x+4, self.y+3)
-    self.fill[1]:size(cap, 6)
-    self.fill[2]:pos(self.x+4+cap, self.y+3)
-    self.fill[2]:size(math.max(0, filled-2*cap), 6)
-    self.fill[3]:pos(self.x+4+filled-cap, self.y+3)
-    self.fill[3]:size(cap, 6)
+    local cap = math.min(3, filled/2)
+    self.fill[1]:pos(self.x+6, self.y+1)
+    self.fill[1]:size(cap, 9)
+    self.fill[2]:pos(self.x+6+cap, self.y+1)
+    self.fill[2]:size(math.max(0, filled-2*cap), 9)
+    self.fill[3]:pos(self.x+6+filled-cap, self.y+1)
+    self.fill[3]:size(cap, 9)
     self:refresh_visibility()
 end
 
@@ -75,9 +75,12 @@ function methods:refresh_visibility()
 end
 
 function methods:show()
-    if self.visible then return end
     self.visible = true
-    self:refresh_visibility()
+    -- Texture loading can restore a primitive's source-image dimensions
+    -- after construction. The images library caches our requested sizes,
+    -- so width() cannot detect that reset. Reassert all six sizes on draw,
+    -- including a stationary, full-HP target; dragging must not be required.
+    self:move(self.x, self.y)
 end
 
 function methods:hide()
@@ -88,7 +91,7 @@ end
 
 function methods:hover(x, y)
     return self.visible and x >= self.x and x <= self.x+self.width
-        and y >= self.y-1 and y <= self.y+13
+        and y >= self.y and y <= self.y+12
 end
 
 function methods:destroy()

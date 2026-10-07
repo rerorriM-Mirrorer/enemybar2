@@ -25,7 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 _addon.name = 'enemybar2'
 _addon.author = 'mmckee,akaden,Awake'
-_addon.version = '1.1.1-a.20261007.1'
+_addon.version = '1.1.1-a.20261007.2'
 _addon.language = 'English'
 _addon.commands = {'enemybar','eb'}
 

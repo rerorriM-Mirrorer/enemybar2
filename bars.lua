@@ -19,6 +19,7 @@ function bars.new(bar_settings)
    o.show_debuff = bar_settings.show_debuff
    bars.initialize(o)
    bars.move(o, bar_settings.pos.x, bar_settings.pos.y)
+   bars.hide(o)
    return o
 end
 
