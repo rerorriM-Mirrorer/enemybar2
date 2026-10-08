@@ -4,10 +4,11 @@ local layout = {}
 function layout.bounds(group)
     local left,top,right,bottom = math.huge,math.huge,-math.huge,-math.huge
     for _, b in ipairs(group) do
+        local shake=b.gauge and b.effects and b.effects.hit_shake and 4 or 0
         left=math.min(left,b.x-(b.show_target_icon and 16 or 0))
-        top=math.min(top,b.y-(b.show_action and b.font_size or 0))
+        top=math.min(top,b.y-(b.show_action and b.font_size or 0)-shake)
         right=math.max(right,b.x+(b.gauge and b.gauge.width or b.width+2))
-        bottom=math.max(bottom,b.y+math.max(12,b.font_size*2))
+        bottom=math.max(bottom,b.y+math.max(12,b.font_size*2)+shake)
     end
     return left,top,right,bottom
 end

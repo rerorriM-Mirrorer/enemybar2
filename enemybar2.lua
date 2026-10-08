@@ -25,7 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 _addon.name = 'enemybar2'
 _addon.author = 'mmckee,akaden,Awake'
-_addon.version = '1.1.1-a.20261008.1'
+_addon.version = '1.1.1-a.20261008.2'
 _addon.language = 'English'
 _addon.commands = {'enemybar','eb'}
 
@@ -387,7 +387,9 @@ function handle_command(c, ...)
     local arity={pos=2,color=3,skin=1,width=1,font=1,font_size=1,count=1,
         stack_dir=1,stack_padding=1,show=1,bold=1,italic=1,bounds=1,locked=1,
         background_alpha=1,animation_duration=1,damage_trail=1,trail_delay=1,trail_duration=1,
-        show_target=1,show_action=1,show_dist=1,show_debuff=1,show_target_icon=1}
+        show_target=1,show_action=1,show_dist=1,show_debuff=1,show_target_icon=1,
+        healing_effect=1,text_effect=1,hit_shake=1,low_hp_pulse=1,
+        heal_duration=1,text_duration=1,pulse_period=1}
     if arity[c] then
         local n=arity[c]
         if #args==n or #args==n+1 then
@@ -409,6 +411,8 @@ function handle_command(c, ...)
             local f=settings[name..'_bar']
             windower.add_to_chat(207,string.format('%s: %s, width %g, saved pos %g %g, locked %s, bounds %s, trail %s',
                 name,f.skin,f.width,f.pos.x,f.pos.y,tostring(f.locked),tostring(f.bounds),tostring(f.damage_trail)))
+            windower.add_to_chat(207,string.format('  feedback: healing %s, text %s, shake %s, pulse %s',
+                tostring(f.healing_effect),tostring(f.text_effect),tostring(f.hit_shake),tostring(f.low_hp_pulse)))
         end
         return
     end
@@ -463,10 +467,10 @@ function handle_command(c, ...)
             else
                 windower.add_to_chat(123, 'EnemyBar: skin must be "ffxi" or "classic"')
             end
-        elseif setting == 'background_alpha' or setting == 'animation_duration' or setting == 'trail_delay' or setting == 'trail_duration' then
+        elseif S{'background_alpha','animation_duration','trail_delay','trail_duration','heal_duration','text_duration','pulse_period'}:contains(setting) then
             local value = tonumber(args[3])
             local maximum = setting == 'background_alpha' and 255 or 10
-            if value and value >= 0 and value <= maximum then
+            if value and value >= 0 and value <= maximum and (setting~='pulse_period' or value>0) then
                 set_setting(bar, setting, value)
             else
                 windower.add_to_chat(123, 'EnemyBar: '..setting..' must be between 0 and '..maximum)
@@ -487,7 +491,7 @@ function handle_command(c, ...)
             else
                 windower.add_to_chat(123, 'EnemyBar: not enough arguments for "'..setting..'"')
             end
-        elseif S{'show','show_target_icon','show_target','show_debuff','show_action','show_dist','bold','italic','bounds','locked','damage_trail'}:contains(setting) then
+        elseif S{'show','show_target_icon','show_target','show_debuff','show_action','show_dist','bold','italic','bounds','locked','damage_trail','healing_effect','text_effect','hit_shake','low_hp_pulse'}:contains(setting) then
             if args[3] then
                 local b = normalize_boolean(args[3])
                 if b == nil then
@@ -562,7 +566,9 @@ function handle_command(c, ...)
 7. bold/italic/bounds/damage_trail <on/off> [frame] - values first, defaults to target
 8. trail_delay/trail_duration <seconds> [frame] - damage trail hold/slide time
 9. setup [t/st/ft/a/all] [on/off] - all moves the complete arrangement; a frame moves only its group
-10. status - reports version and configuration; help/h/manual/man shows this menu.]]
+10. healing_effect/text_effect/hit_shake/low_hp_pulse <on/off> [frame] - individual feedback switches
+11. heal_duration/text_duration/pulse_period <seconds> [frame] - recovery/count/pulse timing (pulse_period > 0)
+12. status - reports version and configuration; help/h/manual/man shows this menu.]]
         for _, line in ipairs(helptext:split('\n')) do
                 windower.add_to_chat(207, line)
         end
@@ -775,6 +781,8 @@ for _, name in ipairs({'target','subtarget','focustarget','aggro'}) do
     frame.bounds,frame.locked,frame.bold,frame.italic=true,false,true,true
     frame.damage_trail,frame.trail_delay,frame.trail_duration=true,1.5,.45
     frame.trail_color={red=167,green=57,blue=96,alpha=128}
+    frame.healing_effect,frame.text_effect,frame.hit_shake,frame.low_hp_pulse=true,true,true,true
+    frame.heal_duration,frame.text_duration,frame.pulse_period=.35,.22,1.4
     frame.pos = default_bar_position(name, frame)
 end
 if settings_old.pos then

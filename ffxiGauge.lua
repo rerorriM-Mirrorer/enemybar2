@@ -1,6 +1,7 @@
 -- Awake: native menu/gauge slices, with separate trough and fill pieces.
 -- Only the centers stretch; combat identity stays in bars.lua.
 local images = require('images')
+local health_motion = require('healthMotion')
 local gauge = {}
 local methods = {}
 methods.__index = methods
@@ -22,9 +23,11 @@ function gauge.new(width, color, options)
         width=math.max(16, width+2), x=0, y=0, value=1, visible=false,
         duration=options.animation_duration or 0,
         clock=options.clock or os.clock, target_value=1,
+        slide_duration=options.animation_duration or 0, color=color,
         damage_trail=options.damage_trail or false, trail_value=1,
         trail_delay=options.trail_delay or 1.5, trail_duration=options.trail_duration or .45,
     }, methods)
+    if options.effects then self.motion=health_motion.new(options.effects,self.clock) end
     -- The shell is deliberately neutral, independent of the resource tint.
     local shell = {alpha=color.alpha, red=255, green=255, blue=255}
     self.trough = {
@@ -33,10 +36,11 @@ function gauge.new(width, color, options)
             red=255, green=255, blue=255}),
         image('trough_right', shell),
     }
-    if self.damage_trail then
+    if self.damage_trail or self.motion then
         local red = options.trail_color or {red=167,green=57,blue=96,alpha=128}
         local tint = {red=red.red,green=red.green,blue=red.blue,
             alpha=math.floor((color.alpha or 255)*(red.alpha or 128)/255+.5)}
+        self.trail_color=tint
         -- Created before the foreground so the current HP covers the trail.
         self.trail = {image('fill_left',tint),image('fill_mid',tint),image('fill_right',tint)}
     end
@@ -50,11 +54,13 @@ end
 
 function methods:move(x, y)
     self.x, self.y = x, y
-    self.trough[1]:pos(x, y)
+    self.feedback=self.motion and self.motion:sample() or nil
+    local shake=self.feedback and self.feedback.offset or 0
+    self.trough[1]:pos(x, y+shake)
     self.trough[1]:size(6, 12)
-    self.trough[2]:pos(x+6, y)
+    self.trough[2]:pos(x+6, y+shake)
     self.trough[2]:size(self.width-12, 12)
-    self.trough[3]:pos(x+self.width-6, y)
+    self.trough[3]:pos(x+self.width-6, y+shake)
     self.trough[3]:size(6, 12)
     self:layout_fill()
 end
@@ -62,7 +68,7 @@ end
 function methods:advance()
     local now = self.clock()
     if self.started_at then
-        local progress = math.min(1, math.max(0, (now-self.started_at)/self.duration))
+        local progress = math.min(1, math.max(0, (now-self.started_at)/self.slide_duration))
         self.value = self.start_value+(self.target_value-self.start_value)*progress
         if progress == 1 then self.started_at = nil end
     end
@@ -76,6 +82,7 @@ end
 function methods:set_value(value, immediate)
     value = math.max(0, math.min(1, value))
     self:advance()
+    if self.motion then self.motion:update(value,immediate or self.duration<=0) end
     if immediate or self.duration <= 0 then
         self.value, self.target_value, self.started_at = value, value, nil
         self.trail_value, self.trail_at = value, nil
@@ -87,28 +94,43 @@ function methods:set_value(value, immediate)
     elseif self.target_value ~= value then
         self:advance()
         self.start_value, self.started_at, self.target_value = self.value, self.clock(), value
+        self.slide_duration=self.motion and self.motion.heal_at and self.motion.heal_duration or self.duration
+        if self.slide_duration<=0 then self.value,self.started_at=value,nil end
         self.trail_value, self.trail_at = value, nil
     else
         self:advance()
     end
-    self:layout_fill()
+    self:move(self.x,self.y)
 end
 
-function methods:layout_parts(parts, value)
+function methods:layout_parts(parts, value, offset)
     local filled = (self.width-12)*value
     -- A nearly empty bar must not retain two full-width caps or overfill.
     local cap = math.min(3, filled/2)
-    parts[1]:pos(self.x+6, self.y+1)
+    parts[1]:pos(self.x+6, self.y+1+(offset or 0))
     parts[1]:size(cap, 9)
-    parts[2]:pos(self.x+6+cap, self.y+1)
+    parts[2]:pos(self.x+6+cap, self.y+1+(offset or 0))
     parts[2]:size(math.max(0, filled-2*cap), 9)
-    parts[3]:pos(self.x+6+filled-cap, self.y+1)
+    parts[3]:pos(self.x+6+filled-cap, self.y+1+(offset or 0))
     parts[3]:size(cap, 9)
 end
 
 function methods:layout_fill()
     if self.trail then self:layout_parts(self.trail,self.trail_value) end
-    self:layout_parts(self.fill,self.value)
+    self:layout_parts(self.fill,self.value,self.feedback and self.feedback.offset or 0)
+    if self.feedback then
+        local fill=health_motion.mix(self.color,{red=255,green=255,blue=255},self.feedback.white)
+        for _,p in ipairs(self.fill) do
+            p:color(fill.red,fill.green,fill.blue)
+            p:alpha(math.floor((self.color.alpha or 255)*self.feedback.alpha+.5))
+        end
+        local trail=self.feedback.healing and {red=209,green=224,blue=151} or
+            health_motion.mix(self.trail_color,{red=224,green=86,blue=130},self.feedback.pulse)
+        for _,p in ipairs(self.trail) do
+            p:color(trail.red,trail.green,trail.blue)
+            p:alpha(self.trail_color.alpha)
+        end
+    end
     self:refresh_visibility()
 end
 
@@ -120,7 +142,8 @@ function methods:refresh_visibility()
         part:visible(self.visible and part:width() > 0 and self.value > 0)
     end
     for _, part in ipairs(self.trail or {}) do
-        part:visible(self.visible and part:width()>0 and self.trail_value>self.value)
+        part:visible(self.visible and part:width()>0 and (self.trail_value>self.value or
+            (self.feedback~=nil and self.feedback.low)))
     end
 end
 

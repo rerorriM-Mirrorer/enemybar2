@@ -16,6 +16,7 @@ local function primitive(settings)
     function p:show() self.showing=true end
     function p:hide() self.showing=false end
     function p:color(r,g,b) self.rgb={r,g,b} end
+    function p:alpha(a) if a then self.settings.color.alpha=a end return self.settings.color.alpha end
     function p:path(path) self.path_value=path end
     function p:hover(x,y)
         return self.showing and x>=self.x and x<=self.x+(self.w or 0)

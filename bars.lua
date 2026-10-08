@@ -1,4 +1,5 @@
 local ffxi_gauge = require('ffxiGauge')
+local health_motion = require('healthMotion')
 
 -- Meta class
 bars = {x_res = windower.get_windower_settings().ui_x_res,y_res = windower.get_windower_settings().ui_y_res}
@@ -16,6 +17,7 @@ function bars.new(bar_settings)
    o.trail_color = bar_settings.trail_color
    o.bold = bar_settings.bold ~= false
    o.italic = bar_settings.italic ~= false
+   o.effects = (bar_settings.healing_effect or bar_settings.text_effect or bar_settings.hit_shake or bar_settings.low_hp_pulse) and bar_settings or nil
    o.width = bar_settings.width
    o.color = bar_settings.color
    o.font = bar_settings.font
@@ -64,7 +66,7 @@ function bars.initialize(o)
 		o.gauge = ffxi_gauge.new(o.width, o.color, {
             background_alpha=o.background_alpha, animation_duration=o.animation_duration,
             damage_trail=o.damage_trail,trail_delay=o.trail_delay,
-            trail_duration=o.trail_duration,trail_color=o.trail_color})
+            trail_duration=o.trail_duration,trail_color=o.trail_color,effects=o.effects})
 	else
 		o.left_cap_image = images.new({
 				pos = {x=0,y=0},
@@ -180,6 +182,7 @@ function bars.show(o)
 		o.right_cap_image:show()
 	end
 	o.name_text:show()
+    bars.refresh_text(o)
 end
 
 function bars.hide(o)
@@ -214,8 +217,21 @@ end
 
 function bars.set_name_color(o, color)
 	if not o then return end
-	o.name_text:color(color.red, color.green, color.blue)
+    o.name_color=color
+    bars.refresh_text(o)
 	o.action_text:color(color.red, color.green, color.blue)
+end
+
+function bars.refresh_text(o)
+    local color=o.name_color or {red=255,green=255,blue=255}
+    if o.gauge and o.gauge.motion then
+        local feedback=o.gauge.motion:sample()
+        o.name_text.hpp=math.floor(feedback.text_value*100+.5)
+        local flash=feedback.flash_kind=='heal' and {red=209,green=224,blue=151} or
+            (o.trail_color or {red=167,green=57,blue=96})
+        color=health_motion.mix(color,flash,feedback.flash)
+    end
+    o.name_text:color(color.red,color.green,color.blue)
 end
 
 function bars.update_target(o, name, hpp, dist, target_type, target_id)
@@ -225,6 +241,7 @@ function bars.update_target(o, name, hpp, dist, target_type, target_id)
     local identity = target_id or name
 	bars.set_value(o, hpp/100, o.target_id ~= identity)
     o.target_id = identity
+    bars.refresh_text(o)
 
 	o.distance_text.dist = string.format('%.1f', dist)
 
