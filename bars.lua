@@ -10,6 +10,12 @@ function bars.new(bar_settings)
    o.skin = bar_settings.skin or 'classic'
    o.background_alpha = bar_settings.background_alpha or 128
    o.animation_duration = bar_settings.animation_duration or 0.18
+   o.damage_trail = bar_settings.damage_trail ~= false
+   o.trail_delay = bar_settings.trail_delay or 1.5
+   o.trail_duration = bar_settings.trail_duration or .45
+   o.trail_color = bar_settings.trail_color
+   o.bold = bar_settings.bold ~= false
+   o.italic = bar_settings.italic ~= false
    o.width = bar_settings.width
    o.color = bar_settings.color
    o.font = bar_settings.font
@@ -56,7 +62,9 @@ function bars.initialize(o)
 		})
 	if o.skin == 'ffxi' then
 		o.gauge = ffxi_gauge.new(o.width, o.color, {
-            background_alpha=o.background_alpha, animation_duration=o.animation_duration})
+            background_alpha=o.background_alpha, animation_duration=o.animation_duration,
+            damage_trail=o.damage_trail,trail_delay=o.trail_delay,
+            trail_duration=o.trail_duration,trail_color=o.trail_color})
 	else
 		o.left_cap_image = images.new({
 				pos = {x=0,y=0},
@@ -99,13 +107,13 @@ function bars.initialize(o)
 	o.name_text = texts.new('${name|(Name)}: ${hpp|(100)}%', {
 			pos = {x=0,y=0},
 			text = { size=o.font_size,font=o.font,stroke={width=2,alpha=180,red=stroke,green=stroke,blue=stroke}},
-			flags = {bold=true,draggable=false,italic=true},
+			flags = {bold=o.bold,draggable=false,italic=o.italic},
 			bg = {visible=false}
 		})
 	o.action_text = texts.new('${action|(Action)}', {
 			pos = {x=0,y=0},
 			text = { size=o.font_size*0.8,font=o.font,stroke={width=2,alpha=180,red=stroke,green=stroke,blue=stroke}},
-			flags = {bold=true,draggable=false,right=true},
+			flags = {bold=o.bold,draggable=false,right=true},
 			bg = {visible=false}
 		})
 	o.attention_arrow_image = images.new({
@@ -120,13 +128,13 @@ function bars.initialize(o)
 	o.target_name_text = texts.new('${pc|(Target)}', {
 			pos = {x=0,y=0},
 			text = { size=o.font_size,font=o.font,stroke={width=2,alpha=180,red=stroke,green=stroke,blue=stroke}},
-			flags = {bold=true,draggable=false},
+			flags = {bold=o.bold,draggable=false},
 			bg = {visible=false}
 		})
 	o.distance_text = texts.new('${dist|(0.0)}\'', {
 			pos = {x=0,y=0},
 			text = { size=o.font_size*0.8,font=o.font,stroke={width=2,alpha=180,red=stroke,green=stroke,blue=stroke}},
-			flags = {bold=true,draggable=false,right=true},
+			flags = {bold=o.bold,draggable=false,right=true},
 			bg = {visible=false}
 		})
 	o.target_status_image = images.new({

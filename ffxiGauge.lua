@@ -22,6 +22,8 @@ function gauge.new(width, color, options)
         width=math.max(16, width+2), x=0, y=0, value=1, visible=false,
         duration=options.animation_duration or 0,
         clock=options.clock or os.clock, target_value=1,
+        damage_trail=options.damage_trail or false, trail_value=1,
+        trail_delay=options.trail_delay or 1.5, trail_duration=options.trail_duration or .45,
     }, methods)
     -- The shell is deliberately neutral, independent of the resource tint.
     local shell = {alpha=color.alpha, red=255, green=255, blue=255}
@@ -31,6 +33,13 @@ function gauge.new(width, color, options)
             red=255, green=255, blue=255}),
         image('trough_right', shell),
     }
+    if self.damage_trail then
+        local red = options.trail_color or {red=167,green=57,blue=96,alpha=128}
+        local tint = {red=red.red,green=red.green,blue=red.blue,
+            alpha=math.floor((color.alpha or 255)*(red.alpha or 128)/255+.5)}
+        -- Created before the foreground so the current HP covers the trail.
+        self.trail = {image('fill_left',tint),image('fill_mid',tint),image('fill_right',tint)}
+    end
     self.fill = {
         image('fill_left', color), image('fill_mid', color),
         image('fill_right', color),
@@ -51,35 +60,55 @@ function methods:move(x, y)
 end
 
 function methods:advance()
-    if not self.started_at then return end
-    local progress = math.min(1, math.max(0, (self.clock()-self.started_at)/self.duration))
-    self.value = self.start_value+(self.target_value-self.start_value)*progress
-    if progress == 1 then self.started_at = nil end
+    local now = self.clock()
+    if self.started_at then
+        local progress = math.min(1, math.max(0, (now-self.started_at)/self.duration))
+        self.value = self.start_value+(self.target_value-self.start_value)*progress
+        if progress == 1 then self.started_at = nil end
+    end
+    if self.trail_at and now >= self.trail_at then
+        local progress = self.trail_duration <= 0 and 1 or math.min(1,(now-self.trail_at)/self.trail_duration)
+        self.trail_value = self.trail_start+(self.target_value-self.trail_start)*progress
+        if progress == 1 then self.trail_at = nil end
+    end
 end
 
 function methods:set_value(value, immediate)
     value = math.max(0, math.min(1, value))
+    self:advance()
     if immediate or self.duration <= 0 then
+        self.value, self.target_value, self.started_at = value, value, nil
+        self.trail_value, self.trail_at = value, nil
+    elseif self.damage_trail and value < self.target_value then
+        -- A hit freezes a moving trail at its current edge and restarts the hold.
+        self.trail_value = math.max(self.trail_value,self.value,value)
+        self.trail_start, self.trail_at = self.trail_value, self.clock()+self.trail_delay
         self.value, self.target_value, self.started_at = value, value, nil
     elseif self.target_value ~= value then
         self:advance()
         self.start_value, self.started_at, self.target_value = self.value, self.clock(), value
+        self.trail_value, self.trail_at = value, nil
     else
         self:advance()
     end
     self:layout_fill()
 end
 
-function methods:layout_fill()
-    local filled = (self.width-12)*self.value
+function methods:layout_parts(parts, value)
+    local filled = (self.width-12)*value
     -- A nearly empty bar must not retain two full-width caps or overfill.
     local cap = math.min(3, filled/2)
-    self.fill[1]:pos(self.x+6, self.y+1)
-    self.fill[1]:size(cap, 9)
-    self.fill[2]:pos(self.x+6+cap, self.y+1)
-    self.fill[2]:size(math.max(0, filled-2*cap), 9)
-    self.fill[3]:pos(self.x+6+filled-cap, self.y+1)
-    self.fill[3]:size(cap, 9)
+    parts[1]:pos(self.x+6, self.y+1)
+    parts[1]:size(cap, 9)
+    parts[2]:pos(self.x+6+cap, self.y+1)
+    parts[2]:size(math.max(0, filled-2*cap), 9)
+    parts[3]:pos(self.x+6+filled-cap, self.y+1)
+    parts[3]:size(cap, 9)
+end
+
+function methods:layout_fill()
+    if self.trail then self:layout_parts(self.trail,self.trail_value) end
+    self:layout_parts(self.fill,self.value)
     self:refresh_visibility()
 end
 
@@ -89,6 +118,9 @@ function methods:refresh_visibility()
     end
     for _, part in ipairs(self.fill) do
         part:visible(self.visible and part:width() > 0 and self.value > 0)
+    end
+    for _, part in ipairs(self.trail or {}) do
+        part:visible(self.visible and part:width()>0 and self.trail_value>self.value)
     end
 end
 
@@ -116,6 +148,7 @@ end
 function methods:destroy()
     for _, part in ipairs(self.trough) do part:destroy() end
     for _, part in ipairs(self.fill) do part:destroy() end
+    for _, part in ipairs(self.trail or {}) do part:destroy() end
 end
 
 return gauge
