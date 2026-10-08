@@ -2,11 +2,17 @@
 
 This is an addon for Windower4 for FFXI. It creates a big health bar for the target to make it easy to see.
 
-The `ffxi-bar-skin-2026-10-07` branch contains the native gauge prototype. Revision `1.1.1-a.20261007.4` uses the actual `menu/gauge` texture extracted from the supplied `51.DAT`. The empty center is approximately 50% opaque (128/255); native caps and colored fill retain full opacity. Main target and aggro bars use the native skin by default, with HP pink and pale MP green respectively. Subtarget and focus retain the classic skin.
+The `ffxi-bar-skin-2026-10-07` branch contains the native gauge prototype. Batch 1, `1.1.1-a.20261008.1`, uses the actual `menu/gauge` texture extracted from the supplied `51.DAT`. Empty troughs are approximately 50% opaque; caps and colored fill retain full opacity. Main target and focus are pink, subtarget TP blue, and aggro pale MP green, all with the same native assets. Existing subtarget/focus presets update once, then preserve subsequent customization. Start with root `TESTING.md` for the current testing guide and record.
 
-New positions use the client's current UI resolution. The main gauge is centered horizontally with its bottom edge 60 pixels above the screen bottom; subtarget and focus sit 30 and 60 pixels above it. The aggro stack sits on the right and accounts for stack direction and row spacing. Saved positions take precedence. Use `//eb resetpos` to recover the main bar after changing resolution, `//eb resetpos a` for aggro, or `//eb resetpos all` for every frame. Resets use current widths and save the resulting positions. On a 1280×720 client, `//eb set width t 400` followed by `//eb resetpos` gives a shorter centered main gauge. Width is not automatically changed.
+New positions use current UI resolution: main starts near bottom center, with subtarget/focus above it and aggro on the right. Saved positions take precedence. `//eb resetpos` now centers main on screen; `//eb resetpos a` centers aggro, and `//eb resetpos all` centers the whole arrangement while preserving spacing. Resets save positions and use current widths. `//eb width 400` shortens main; widths never change automatically.
 
-Native HP fills slide to a new value over 0.18 seconds in either direction. Repeated HP samples do not restart the slide; an interrupted slide continues from the displayed edge. First appearance, target changes and aggro-row reassignment snap immediately, using monster IDs rather than names. The displayed HP percentage remains current. The aggro stack omits the primary target while its main bar is enabled and skips missing monsters without consuming rows.
+On damage, native foreground fills jump to current HP; a translucent red trail holds for 1.5 seconds, then shrinks over .45 seconds. Each new hit restarts the delay and freezes an already-moving trail at its displayed edge. Tint is RGB167/57/96 at alpha128, sampled from the supplied swatch. Tune with `//eb trail_delay 1.5` and `//eb trail_duration .45`; `//eb damage_trail off` restores the earlier fill slide. Append `all` to apply to every frame. Batch 1 healing retains the earlier .18-second simple slide and clears the trail. First appearance and changed monster IDs snap immediately. Percentage remains current; aggro omits the enemy shown in the main bar and skips missing monsters.
+
+Visible groups can be dragged without setup. `//eb lock` and `//eb unlock` apply to all groups; append a frame for individual control. `//eb setup on` shows all placeholders and dragging any bar moves the whole arrangement. `//eb setup st on` shows/moves only subtarget (also t/ft/a/all); `//eb setup off` returns to live display. Setup deliberately overrides locks; Ctrl-drag snaps to the grid.
+
+Bounds default on, keeping gauge geometry reachable during movement and resolution changes. `//eb bounds off all` permits deliberate off-screen placement. Resolution recovery is runtime-only until a drag/reset saves positions. Oversized arrangements keep their widths and are anchored at an edge; optional text can extend beyond gauge bounds. `//eb bold off all` and `//eb italic off all` control name styling; bold also applies to supporting labels.
+
+Short commands use values followed by an optional frame, defaulting to target: `//eb pos 300 400`, `//eb pos 300 400 a`, `//eb color 142 180 249 st`, `//eb skin ffxi ft`. Frame-first shorthand and original `//eb set pos t 300 400` also work. `//eb status` reports version and saved settings. Frame names are t/st/ft/a/all or their full names.
 
 ![Native gauge skin, rendered from the shipped assets](docs/ffxi-bar-preview.png)
 
@@ -40,7 +46,7 @@ target_frame = **t**arget/**s**ub**t**arget/**f**ocus**t**arget/**a**ggro/all. S
 | Command | Action |
 | --- | --- |
 | //eb setup/debug/demo/test | Activate setup mode. Enables draging target frames and displays everything with your current settings. Ctrl-drag to snap to grid. |
-| //eb resetpos [target_frame] | Repositions and saves the selected frame using current UI dimensions and width; defaults to the main target. Use all to recover every frame. |
+| //eb resetpos [target_frame] | Centers and saves the selected group; defaults to main. All centers the arrangement together. |
 | //eb focustarget/ft [target name] | Specifies a focus target. The focus target frame will display this target's hp and status. |
 | //eb **s**et pos *target_frame* x y | Moves a target frame to a specified position |
 | //eb **s**et color *target_frame* red green blue | Specifies the hp bar color for the given target frame |
@@ -71,3 +77,10 @@ Added several things:
 - display for target/subtarget/focustarget/aggro'd mobs' distance.
 - indicator on aggro'd mobs' health bars for which is targeted.
 - indicator on target/subtarget/focustarget/aggro'd mobs for crowd control status effects
+
+## Cumulative changelog
+
+- **2026-10-08 / Batch 1:** Delayed red damage trail with interruption handling; live dragging and locks; whole-layout/individual setup; optional bounds and resolution recovery; center-screen reset; shorter commands; native TP-blue subtarget and pink focus; bold/italic controls and status. Added shared development documents and root testing record.
+- **2026-10-07 / .4:** UI-aware default positions and resetpos recovery.
+- **2026-10-07 / .3:** 50%-opaque empty trough, native green aggro stack, primary-target exclusion, and .18-second HP slide.
+- **2026-10-07 / .2:** Actual native DAT slices and load-size recovery, confirmed visually by user.

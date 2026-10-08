@@ -25,7 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 _addon.name = 'enemybar2'
 _addon.author = 'mmckee,akaden,Awake'
-_addon.version = '1.1.1-a.20261007.4'
+_addon.version = '1.1.1-a.20261008.1'
 _addon.language = 'English'
 _addon.commands = {'enemybar','eb'}
 
@@ -37,6 +37,31 @@ packets = require('packets')
 
 require('bars')
 require('actionTracking')
+local bar_layout = require('barLayout')
+local frame_names = {'target','subtarget','focustarget','aggro'}
+local last_ui_width, last_ui_height
+local function save_positions()
+    for i, name in ipairs(frame_names) do
+        local b=bar_sets[i][1]
+        if b then settings[name..'_bar'].pos={x=b.x,y=b.y} end
+    end
+    settings:save()
+end
+local function move_group(group,dx,dy,constrain)
+    local ui=windower.get_windower_settings()
+    if constrain then dx,dy=bar_layout.clamp(group,dx,dy,ui.ui_x_res,ui.ui_y_res) end
+    for _,b in ipairs(group) do bars.move(b,b.x+dx,b.y+dy) end
+    return dx,dy
+end
+local function recover_bounds()
+    if not bar_sets then return end
+    local ui=windower.get_windower_settings()
+    bars.x_res,bars.y_res=ui.ui_x_res,ui.ui_y_res
+    for i,group in ipairs(bar_sets) do
+        if settings[frame_names[i]..'_bar'].bounds ~= false then move_group(group,0,0,true) end
+    end
+    last_ui_width,last_ui_height=ui.ui_x_res,ui.ui_y_res
+end
 
 player_id = nil
 party_members = {}
@@ -82,11 +107,16 @@ function initialize_bars()
     end
 
     bar_sets = {{target_bar}, {subtarget_bar}, {focustarget_bar}, aggro_bars}
+    for i,group in ipairs(bar_sets) do
+        for _,b in ipairs(group) do b.frame_name=frame_names[i] end
+    end
+    dragged=nil
+    recover_bounds()
 end
 
 function update_bar(bar, target, show)
     if state.setup then
-        if show then
+        if not state.setup_scope or state.setup_scope == 'all' or state.setup_scope == bar.frame_name then
             bars.show(bar)
             if bar == target_bar then bars.update_target(bar, "Target Name", 79, 12.1, 1)
             elseif bar == subtarget_bar then bars.update_target(bar, "Subtarget Name", 53, 11.4, 2)
@@ -352,20 +382,52 @@ function handle_command(c, ...)
     if not c then return end
     local args = L{...}
     c = c:lower()
+    -- Short forms use values first, with an optional frame last. Legacy set
+    -- syntax still uses setting/frame/values. Keep one validation path.
+    local arity={pos=2,color=3,skin=1,width=1,font=1,font_size=1,count=1,
+        stack_dir=1,stack_padding=1,show=1,bold=1,italic=1,bounds=1,locked=1,
+        background_alpha=1,animation_duration=1,damage_trail=1,trail_delay=1,trail_duration=1,
+        show_target=1,show_action=1,show_dist=1,show_debuff=1,show_target_icon=1}
+    if arity[c] then
+        local n=arity[c]
+        if #args==n or #args==n+1 then
+            if #args==n+1 and normalize_bar_name(args[1]) then
+                return handle_command('set',c,args[1],unpack(args,2,n+1))
+            end
+            local frame=args[n+1] or 't'
+            return handle_command('set',c,frame,unpack(args,1,n))
+        end
+        windower.add_to_chat(123,'EnemyBar: '..c..' needs '..n..' value(s), then optional frame')
+        return
+    end
+    if c == 'lock' or c == 'unlock' then
+        return handle_command('set','locked',args[1] or 'all',c=='lock' and 'on' or 'off')
+    end
+    if c == 'status' then
+        windower.add_to_chat(207,'EnemyBar '.._addon.version..': setup '..(state.setup and (state.setup_scope or 'all') or 'off'))
+        for _,name in ipairs(frame_names) do
+            local f=settings[name..'_bar']
+            windower.add_to_chat(207,string.format('%s: %s, width %g, saved pos %g %g, locked %s, bounds %s, trail %s',
+                name,f.skin,f.width,f.pos.x,f.pos.y,tostring(f.locked),tostring(f.bounds),tostring(f.damage_trail)))
+        end
+        return
+    end
     if c == 'resetpos' then
         local name = normalize_bar_name(args[1] or 't')
         if not name then
             windower.add_to_chat(123, 'EnemyBar: Unknown bar name')
             return
         end
-        for _, frame_name in ipairs({'target','subtarget','focustarget','aggro'}) do
+        local group={}
+        for i, frame_name in ipairs(frame_names) do
             if name == 'all' or name == frame_name then
-                local frame = settings[frame_name..'_bar']
-                frame.pos = default_bar_position(frame_name, frame)
+                for _,b in ipairs(bar_sets[i]) do group[#group+1]=b end
             end
         end
-        settings:save()
-        initialize_bars()
+        local ui=windower.get_windower_settings()
+        local dx,dy=bar_layout.center(group,ui.ui_x_res,ui.ui_y_res)
+        move_group(group,dx,dy,true)
+        save_positions()
         windower.add_to_chat(207, 'EnemyBar: position reset for "'..name..'" bar')
     elseif S{'set','s'}:contains(c) and args[1] and args[2] then
         local setting = args[1]:lower()
@@ -401,9 +463,9 @@ function handle_command(c, ...)
             else
                 windower.add_to_chat(123, 'EnemyBar: skin must be "ffxi" or "classic"')
             end
-        elseif setting == 'background_alpha' or setting == 'animation_duration' then
+        elseif setting == 'background_alpha' or setting == 'animation_duration' or setting == 'trail_delay' or setting == 'trail_duration' then
             local value = tonumber(args[3])
-            local maximum = setting == 'background_alpha' and 255 or 2
+            local maximum = setting == 'background_alpha' and 255 or 10
             if value and value >= 0 and value <= maximum then
                 set_setting(bar, setting, value)
             else
@@ -425,7 +487,7 @@ function handle_command(c, ...)
             else
                 windower.add_to_chat(123, 'EnemyBar: not enough arguments for "'..setting..'"')
             end
-        elseif S{'show','show_target_icon','show_target','show_debuff','show_action','show_dist'}:contains(setting) then
+        elseif S{'show','show_target_icon','show_target','show_debuff','show_action','show_dist','bold','italic','bounds','locked','damage_trail'}:contains(setting) then
             if args[3] then
                 local b = normalize_boolean(args[3])
                 if b == nil then
@@ -471,11 +533,22 @@ function handle_command(c, ...)
             end
         end
     elseif S{'demo','setup','debug','test'}:contains(c) then
-        if args[3] then
-            state.setup = normalize_boolean(args[3])
-        else
-            state.setup = not state.setup
+        local scope = args[1] and normalize_bar_name(args[1]) or 'all'
+        local enabled = args[1] and normalize_boolean(args[1])
+        if args[1] and not scope and enabled==nil then
+            windower.add_to_chat(123,'EnemyBar: setup [t/st/ft/a/all] [on/off]'); return
         end
+        if enabled~=nil then state.setup=enabled; state.setup_scope='all'
+        else
+            local explicit=args[2] and normalize_boolean(args[2])
+            if args[2] and explicit==nil then
+                windower.add_to_chat(123,'EnemyBar: setup state must be on/off'); return
+            end
+            if explicit~=nil then state.setup=explicit
+            else state.setup=not (state.setup and state.setup_scope==scope) end
+            state.setup_scope=scope
+        end
+        dragged=nil
         windower.add_to_chat(207, 'EnemyBar: setup mode is now "'..(state.setup and 'on' or 'off')..'"')
     elseif S{'help','h','man','manual'}:contains(c) then
         helptext = [[Enemy Bar - Command List:')
@@ -484,7 +557,12 @@ function handle_command(c, ...)
 2. focustarget/ft/f (player_name or id or blank or clear) - create a bar for a particular party member, mob by ID, or by current target (blank), or clear the current focus target
 3. setup/demo/debug/test - toggles setup mode displaying test versions of all options and enabling drag for each frame
 4. resetpos [target/t/subtarget/st/focustarget/ft/aggro/a/all] - recover a frame using current UI dimensions (defaults to target)
-5. help/h/manual/man --Shows this menu.]]
+5. lock/unlock [frame] - lock live dragging (defaults to all); setup remains editable
+6. pos <x> <y> [frame], width <value> [frame], color <r> <g> <b> [frame] - values first, defaults to target
+7. bold/italic/bounds/damage_trail <on/off> [frame] - values first, defaults to target
+8. trail_delay/trail_duration <seconds> [frame] - damage trail hold/slide time
+9. setup [t/st/ft/a/all] [on/off] - all moves the complete arrangement; a frame moves only its group
+10. status - reports version and configuration; help/h/manual/man shows this menu.]]
         for _, line in ipairs(helptext:split('\n')) do
                 windower.add_to_chat(207, line)
         end
@@ -549,6 +627,10 @@ function set_setting(bar, setting, v)
 end
 
 windower.register_event('prerender', function()
+    local ui=windower.get_windower_settings()
+    if ui.ui_x_res~=last_ui_width or ui.ui_y_res~=last_ui_height then
+        recover_bounds() -- runtime recovery; keep saved layouts for larger clients
+    end
     if player_id then
         update_bar(target_bar, windower.ffxi.get_mob_by_target('t'), settings.target_bar.show)
         update_bar(subtarget_bar, windower.ffxi.get_mob_by_target('st'), settings.subtarget_bar.show)
@@ -609,9 +691,7 @@ windower.register_event('mouse', function(type, x, y, delta, blocked)
                 d_y = y - dragged.y
             end
 
-            for i, b in ipairs(dragged.bars) do
-                    bars.move(b, b.x + d_x, b.y + d_y)
-            end
+            d_x,d_y=move_group(dragged.bars,d_x,d_y,dragged.constrain)
             dragged.x = dragged.x + d_x
             dragged.y = dragged.y + d_y
             return true
@@ -619,11 +699,19 @@ windower.register_event('mouse', function(type, x, y, delta, blocked)
 
     -- Mouse left click
     elseif type == 1 then
-        if not state.setup then return false end
-        for _, s in ipairs(bar_sets) do
+        for group_index, s in ipairs(bar_sets) do
             for _, b in ipairs(s) do
-                if bars.hover(b, x, y) then
-                    dragged = {bars = s, x = x , y = y}
+                if bars.hover(b, x, y) and (state.setup or not settings[frame_names[group_index]..'_bar'].locked) then
+                    local group=s
+                    local constrain=settings[frame_names[group_index]..'_bar'].bounds~=false
+                    if state.setup and state.setup_scope=='all' then
+                        group={}; constrain=false
+                        for i,set in ipairs(bar_sets) do
+                            constrain=constrain or settings[frame_names[i]..'_bar'].bounds~=false
+                            for _,part in ipairs(set) do group[#group+1]=part end
+                        end
+                    end
+                    dragged = {bars = group, x = x , y = y, constrain=constrain}
                     return true
                 end
             end
@@ -632,11 +720,7 @@ windower.register_event('mouse', function(type, x, y, delta, blocked)
     -- Mouse left release
     elseif type == 2 then
         if dragged then
-            settings.target_bar.pos = {x=target_bar.x,y=target_bar.y}
-            settings.subtarget_bar.pos = {x=subtarget_bar.x,y=subtarget_bar.y}
-            settings.focustarget_bar.pos = {x=focustarget_bar.x,y=focustarget_bar.y}
-            settings.aggro_bar.pos = {x=aggro_bars[1].x,y=aggro_bars[1].y}
-            settings:save()
+            save_positions()
             dragged = nil
             return true
         end
@@ -665,15 +749,15 @@ defaults.target_bar = {
     show_action=false, show_dist=false, show_debuff=false}
 defaults.subtarget_bar = {
     background_alpha=128, animation_duration=0.18,
-    pos={x=680,y=700}, width=300, skin='classic',
-    color={alpha=255,red=12,green=50,blue=101},
+    pos={x=680,y=700}, width=300, skin='ffxi',
+    color={alpha=255,red=142,green=180,blue=249},
     font='Arial', font_size=12,
     show=true, show_target=false, show_target_icon=false,
     show_action=false, show_dist=false, show_debuff=false}
 defaults.focustarget_bar = {
     background_alpha=128, animation_duration=0.18,
-    pos={x=680,y=670}, width=250, skin='classic',
-    color={alpha=255,red=93,green=0,blue=255},
+    pos={x=680,y=670}, width=250, skin='ffxi',
+    color={alpha=255,red=255,green=149,blue=151},
     font='Arial', font_size=12,
     show=true, show_target=false, show_target_icon=false,
     show_action=false, show_dist=false, show_debuff=false}
@@ -688,6 +772,9 @@ defaults.aggro_bar = {
 settings_old = config.load({})
 for _, name in ipairs({'target','subtarget','focustarget','aggro'}) do
     local frame = defaults[name..'_bar']
+    frame.bounds,frame.locked,frame.bold,frame.italic=true,false,true,true
+    frame.damage_trail,frame.trail_delay,frame.trail_duration=true,1.5,.45
+    frame.trail_color={red=167,green=57,blue=96,alpha=128}
     frame.pos = default_bar_position(name, frame)
 end
 if settings_old.pos then
@@ -699,6 +786,21 @@ if settings_old.pos then
     defaults.subtarget_bar.font_size = settings_old.font_size
 end
 settings = config.load(defaults)
+-- Awake: adopt the requested native subtarget/focus presets once for existing
+-- installs. A saved revision marker preserves later user color/skin edits.
+local migrated=false
+for _,name in ipairs({'subtarget','focustarget'}) do
+    local old=settings_old[name..'_bar']
+    local frame=settings[name..'_bar']
+    if old and not old.native_style_revision then
+        frame.skin='ffxi'
+        frame.color={alpha=frame.color.alpha or 255,red=defaults[name..'_bar'].color.red,
+            green=defaults[name..'_bar'].color.green,blue=defaults[name..'_bar'].color.blue}
+        migrated=true
+    end
+    frame.native_style_revision=1
+end
+if migrated then settings:save() end
 config.register(settings, initialize_bars)
 
 cache_party_members()

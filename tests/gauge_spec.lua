@@ -61,6 +61,34 @@ assert(math.abs(animated.value-.2)<1e-9)
 animated:set_value(.8,true)
 assert(animated.value==.8 and animated.started_at==nil)
 animated:destroy()
+now=0
+local trail=gauge.new(180,{alpha=255,red=255,green=149,blue=151},
+    {damage_trail=true,animation_duration=.18,trail_delay=1.5,trail_duration=.5,
+     clock=function() return now end})
+assert(count_live()==9 and trail.trail[1].settings.color.red==167)
+trail:set_value(1,true);trail:show();trail:set_value(.8)
+assert(trail.value==.8 and trail.trail_value==1)
+now=1;trail:show();trail:set_value(.8)
+assert(trail.trail_at==1.5 and trail.trail_value==1)
+trail:set_value(.6)
+assert(trail.trail_at==2.5)
+now=2.4;trail:show();assert(trail.trail_value==1)
+now=2.75;trail:show();assert(math.abs(trail.trail_value-.8)<1e-9)
+trail:set_value(.4)
+assert(math.abs(trail.trail_value-.8)<1e-9 and trail.trail_at==4.25)
+now=4.5;trail:show();assert(math.abs(trail.trail_value-.6)<1e-9)
+now=5;trail:show();assert(trail.trail_value==.4 and not trail.trail_at)
+for _,p in ipairs(trail.trail) do assert(not p:visible()) end
+trail:set_value(0);assert(trail.value==0 and trail.trail_value==.4)
+trail:hide();for _,p in ipairs(trail.trail) do assert(not p:visible()) end
+trail:set_value(.9,true);trail:show()
+assert(trail.trail_value==.9 and not trail.trail_at)
+trail:set_value(.2);trail:set_value(.7) -- batch 1 healing clears stale damage
+assert(not trail.trail_at and trail.target_value==.7)
+for _,p in ipairs(trail.trail) do p.render_w,p.render_h=32,56 end
+trail:show()
+for _,p in ipairs(trail.trail) do assert(p.render_w==p.w and p.render_h==p.h) end
+trail:destroy();assert(count_live()==0)
 for _, width in ipairs({1,16,180,300,600}) do
     local g = gauge.new(width,{alpha=255,red=255,green=149,blue=151})
     assert(count_live()==6)
@@ -123,7 +151,8 @@ local identity_bar = new_bar('ffxi')
 bars.update_target(identity_bar,'Rabbit',90,12,1,101)
 assert(identity_bar.gauge.value==.9)
 bars.update_target(identity_bar,'Rabbit',30,12,1,101)
-assert(identity_bar.gauge.target_value==.3 and identity_bar.gauge.started_at)
+assert(identity_bar.gauge.target_value==.3 and identity_bar.gauge.trail_at)
+assert(identity_bar.gauge.value==.3 and identity_bar.gauge.trail_value==.9)
 bars.update_target(identity_bar,'Rabbit',60,12,1,102)
 assert(identity_bar.gauge.value==.6 and not identity_bar.gauge.started_at)
 bars.hide(identity_bar)
@@ -176,7 +205,11 @@ L=function(values) return values end
 _addon={}
 windower.ffxi={get_info=function() return {logged_in=false} end,
     get_party=function() return {} end}
-windower.register_event=function() end
+local events={}
+windower.register_event=function(name,callback)
+    events[name]=events[name] or {}; table.insert(events[name],callback)
+end
+unpack=unpack or table.unpack
 windower.add_to_chat=function() end
 dofile('enemybar2.lua')
 assert(settings.aggro_bar.show and aggro_bars[1].gauge)
@@ -187,20 +220,24 @@ settings.target_bar.pos={x=1800,y=1200}
 local reset_saves=saves
 handle_command('resetpos')
 assert(saves==reset_saves+1)
-assert(settings.target_bar.pos.x==339 and settings.target_bar.pos.y==648)
-assert(target_bar.x==339 and target_bar.y==648)
+assert(settings.target_bar.pos.x==339 and settings.target_bar.pos.y==346)
+assert(target_bar.x==339 and target_bar.y==346)
 assert(settings.target_bar.width==600 and settings.target_bar.color.green==149)
 settings.target_bar.width=400
+initialize_bars()
 handle_command('resetpos','t')
 assert(settings.target_bar.pos.x==439)
 settings.aggro_bar.stack_dir='down'
+initialize_bars()
+local before_spacing=aggro_bars[6].y-aggro_bars[1].y
+local before_sub_offset=subtarget_bar.y-target_bar.y
 handle_command('resetpos','all')
-assert(settings.subtarget_bar.pos.y==618 and settings.focustarget_bar.pos.y==588)
-assert(settings.aggro_bar.pos.x==1078 and settings.aggro_bar.pos.y==513)
-assert(aggro_bars[6].y==648)
+assert(subtarget_bar.y-target_bar.y==before_sub_offset)
+assert(aggro_bars[6].y-aggro_bars[1].y==before_spacing)
 settings.aggro_bar.stack_dir='up'
+initialize_bars()
 handle_command('resetpos','a')
-assert(aggro_bars[1].y==648 and aggro_bars[6].y==513)
+assert(aggro_bars[1].y-aggro_bars[6].y==135)
 local valid_saves=saves
 handle_command('resetpos','bogus')
 assert(saves==valid_saves)
@@ -221,7 +258,7 @@ assigned={}; settings.target_bar.show=false
 update_aggro_bars(true)
 assert(#assigned==3 and assigned[1]==10)
 settings.target_bar.show=true; update_bar=original_update
-assert(target_bar.gauge and not subtarget_bar.gauge and not focustarget_bar.gauge)
+assert(target_bar.gauge and subtarget_bar.gauge and focustarget_bar.gauge)
 local original_count=count_live()
 handle_command('set','skin','t','invalid')
 assert(saves==0 and count_live()==original_count)
@@ -239,6 +276,55 @@ local before_invalid=saves
 handle_command('set','background_alpha','t','256')
 handle_command('set','animation_duration','t','-1')
 assert(saves==before_invalid)
+handle_command('width','420')
+assert(settings.target_bar.width==420)
+handle_command('pos','100','200','st')
+assert(subtarget_bar.x==100 and subtarget_bar.y==200)
+handle_command('pos','st','110','210')
+assert(subtarget_bar.x==110 and subtarget_bar.y==210)
+handle_command('bold','off','all');handle_command('italic','off','st')
+assert(not target_bar.name_text.settings.flags.bold)
+assert(not subtarget_bar.name_text.settings.flags.italic)
+handle_command('bounds','off','all')
+handle_command('setup','all','on')
+for _,group in ipairs(bar_sets) do for _,b in ipairs(group) do update_bar(b,nil,false) end end
+assert(target_bar.name_text:visible() and subtarget_bar.name_text:visible())
+local old_positions={}
+for _,group in ipairs(bar_sets) do for _,b in ipairs(group) do old_positions[b]={b.x,b.y} end end
+local mouse=events.mouse[1]
+local mx,my=target_bar.x+10,target_bar.y+1
+assert(mouse(1,mx,my,0,false))
+assert(mouse(0,mx+11,my+7,0,false))
+for b,pos in pairs(old_positions) do assert(b.x==pos[1]+11 and b.y==pos[2]+7) end
+assert(mouse(2,mx+11,my+7,0,false))
+handle_command('setup','st','on')
+for _,group in ipairs(bar_sets) do for _,b in ipairs(group) do update_bar(b,nil,false) end end
+assert(not target_bar.name_text:visible() and subtarget_bar.name_text:visible())
+local before_target_x=target_bar.x
+mx,my=subtarget_bar.x+10,subtarget_bar.y+1
+assert(mouse(1,mx,my,0,false));mouse(0,mx+4,my+2,0,false);mouse(2,mx+4,my+2,0,false)
+assert(target_bar.x==before_target_x)
+handle_command('setup','off')
+bars.show(target_bar)
+handle_command('lock','t');bars.show(target_bar)
+mx,my=target_bar.x+10,target_bar.y+1
+assert(not mouse(1,mx,my,0,false))
+handle_command('unlock','t');bars.show(target_bar)
+assert(mouse(1,mx,my,0,false));mouse(2,mx,my,0,false)
+handle_command('bounds','on','all')
+handle_command('pos','9999','9999')
+local ui=windower.get_windower_settings()
+assert(target_bar.x+target_bar.gauge.width<=ui.ui_x_res)
+assert(target_bar.y+target_bar.font_size*2<=ui.ui_y_res)
+windower.get_windower_settings=function() return {ui_x_res=800,ui_y_res=600} end
+events.prerender[1]()
+assert(target_bar.x+target_bar.gauge.width<=800 and target_bar.y+28<=600)
+handle_command('bounds','off')
+handle_command('pos','1200','900')
+assert(target_bar.x==1200 and target_bar.y==900)
+handle_command('resetpos')
+assert(target_bar.x>=0 and target_bar.x+target_bar.gauge.width<=800)
+windower.get_windower_settings=original_ui
 handle_command('set','skin','all','ffxi')
 assert(target_bar.gauge and subtarget_bar.gauge and focustarget_bar.gauge)
 for _,b in ipairs(aggro_bars) do assert(b.gauge) end
