@@ -2,7 +2,9 @@
 
 This is an addon for Windower4 for FFXI. It creates a big health bar for the target to make it easy to see.
 
-The `ffxi-bar-skin-2026-10-07` branch contains the native gauge prototype. Revision `1.1.1-a.20261007.3` uses the actual `menu/gauge` texture extracted from the supplied `51.DAT`. The empty center is now approximately 50% opaque (128/255); native caps and colored fill retain full opacity. Main target and aggro bars use the native skin by default, with HP pink and pale MP green respectively. Subtarget and focus retain the classic skin.
+The `ffxi-bar-skin-2026-10-07` branch contains the native gauge prototype. Revision `1.1.1-a.20261007.4` uses the actual `menu/gauge` texture extracted from the supplied `51.DAT`. The empty center is approximately 50% opaque (128/255); native caps and colored fill retain full opacity. Main target and aggro bars use the native skin by default, with HP pink and pale MP green respectively. Subtarget and focus retain the classic skin.
+
+New positions use the client's current UI resolution. The main gauge is centered horizontally with its bottom edge 60 pixels above the screen bottom; subtarget and focus sit 30 and 60 pixels above it. The aggro stack sits on the right and accounts for stack direction and row spacing. Saved positions take precedence. Use `//eb resetpos` to recover the main bar after changing resolution, `//eb resetpos a` for aggro, or `//eb resetpos all` for every frame. Resets use current widths and save the resulting positions. On a 1280×720 client, `//eb set width t 400` followed by `//eb resetpos` gives a shorter centered main gauge. Width is not automatically changed.
 
 Native HP fills slide to a new value over 0.18 seconds in either direction. Repeated HP samples do not restart the slide; an interrupted slide continues from the displayed edge. First appearance, target changes and aggro-row reassignment snap immediately, using monster IDs rather than names. The displayed HP percentage remains current. The aggro stack omits the primary target while its main bar is enabled and skips missing monsters without consuming rows.
 
@@ -38,6 +40,7 @@ target_frame = **t**arget/**s**ub**t**arget/**f**ocus**t**arget/**a**ggro/all. S
 | Command | Action |
 | --- | --- |
 | //eb setup/debug/demo/test | Activate setup mode. Enables draging target frames and displays everything with your current settings. Ctrl-drag to snap to grid. |
+| //eb resetpos [target_frame] | Repositions and saves the selected frame using current UI dimensions and width; defaults to the main target. Use all to recover every frame. |
 | //eb focustarget/ft [target name] | Specifies a focus target. The focus target frame will display this target's hp and status. |
 | //eb **s**et pos *target_frame* x y | Moves a target frame to a specified position |
 | //eb **s**et color *target_frame* red green blue | Specifies the hp bar color for the given target frame |

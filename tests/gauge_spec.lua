@@ -180,6 +180,34 @@ windower.register_event=function() end
 windower.add_to_chat=function() end
 dofile('enemybar2.lua')
 assert(settings.aggro_bar.show and aggro_bars[1].gauge)
+assert(settings.target_bar.pos.x==659 and settings.target_bar.pos.y==1008)
+local original_ui = windower.get_windower_settings
+windower.get_windower_settings=function() return {ui_x_res=1280,ui_y_res=720} end
+settings.target_bar.pos={x=1800,y=1200}
+local reset_saves=saves
+handle_command('resetpos')
+assert(saves==reset_saves+1)
+assert(settings.target_bar.pos.x==339 and settings.target_bar.pos.y==648)
+assert(target_bar.x==339 and target_bar.y==648)
+assert(settings.target_bar.width==600 and settings.target_bar.color.green==149)
+settings.target_bar.width=400
+handle_command('resetpos','t')
+assert(settings.target_bar.pos.x==439)
+settings.aggro_bar.stack_dir='down'
+handle_command('resetpos','all')
+assert(settings.subtarget_bar.pos.y==618 and settings.focustarget_bar.pos.y==588)
+assert(settings.aggro_bar.pos.x==1078 and settings.aggro_bar.pos.y==513)
+assert(aggro_bars[6].y==648)
+settings.aggro_bar.stack_dir='up'
+handle_command('resetpos','a')
+assert(aggro_bars[1].y==648 and aggro_bars[6].y==513)
+local valid_saves=saves
+handle_command('resetpos','bogus')
+assert(saves==valid_saves)
+settings.target_bar.width=600
+windower.get_windower_settings=original_ui
+initialize_bars()
+saves=0
 assert(aggro_bars[1].gauge.fill[1].settings.color.green==224)
 local original_update = update_bar
 local assigned = {}

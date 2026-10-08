@@ -25,7 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 _addon.name = 'enemybar2'
 _addon.author = 'mmckee,akaden,Awake'
-_addon.version = '1.1.1-a.20261007.3'
+_addon.version = '1.1.1-a.20261007.4'
 _addon.language = 'English'
 _addon.commands = {'enemybar','eb'}
 
@@ -329,11 +329,45 @@ function cache_party_member(p, party_number)
     end
 end
 
+-- Awake: use UI dimensions, not the render buffer. Saved positions remain
+-- explicit; resetpos is the escape hatch after moving to a smaller client.
+local function default_bar_position(name, frame)
+    local ui = windower.get_windower_settings()
+    local width = frame.skin == 'ffxi' and math.max(16, frame.width+2) or frame.width+2
+    local bottom = math.max(0, ui.ui_y_res-72)
+    local x = math.max(0, math.floor((ui.ui_x_res-width)/2))
+    local y = bottom
+    if name == 'subtarget' then y = math.max(0, bottom-30)
+    elseif name == 'focustarget' then y = math.max(0, bottom-60)
+    elseif name == 'aggro' then
+        x = math.max(0, ui.ui_x_res-width-20)
+        local span = math.max(0, (frame.count-1)*frame.stack_padding)
+        if frame.stack_dir == 'down' then y = math.max(0, bottom-span)
+        else y = math.max(bottom, math.min(span, ui.ui_y_res-12)) end
+    end
+    return {x=x, y=y}
+end
+
 function handle_command(c, ...)
     if not c then return end
     local args = L{...}
     c = c:lower()
-    if S{'set','s'}:contains(c) and args[1] and args[2] then
+    if c == 'resetpos' then
+        local name = normalize_bar_name(args[1] or 't')
+        if not name then
+            windower.add_to_chat(123, 'EnemyBar: Unknown bar name')
+            return
+        end
+        for _, frame_name in ipairs({'target','subtarget','focustarget','aggro'}) do
+            if name == 'all' or name == frame_name then
+                local frame = settings[frame_name..'_bar']
+                frame.pos = default_bar_position(frame_name, frame)
+            end
+        end
+        settings:save()
+        initialize_bars()
+        windower.add_to_chat(207, 'EnemyBar: position reset for "'..name..'" bar')
+    elseif S{'set','s'}:contains(c) and args[1] and args[2] then
         local setting = args[1]:lower()
         local bar = normalize_bar_name(args[2])
         if not bar then
@@ -449,7 +483,8 @@ function handle_command(c, ...)
     setting: pos(x y)/font/font_size/color(r g b)/skin(ffxi classic)/width/count/show/show_target_icon/show_debuff/show_dist/show_action/show_target
 2. focustarget/ft/f (player_name or id or blank or clear) - create a bar for a particular party member, mob by ID, or by current target (blank), or clear the current focus target
 3. setup/demo/debug/test - toggles setup mode displaying test versions of all options and enabling drag for each frame
-4. help/h/manual/man --Shows this menu.]]
+4. resetpos [target/t/subtarget/st/focustarget/ft/aggro/a/all] - recover a frame using current UI dimensions (defaults to target)
+5. help/h/manual/man --Shows this menu.]]
         for _, line in ipairs(helptext:split('\n')) do
                 windower.add_to_chat(207, line)
         end
@@ -651,6 +686,10 @@ defaults.aggro_bar = {
     show_action=false, show_dist=false, show_debuff=false,
     count=6, stack_dir='down', stack_padding = 27}
 settings_old = config.load({})
+for _, name in ipairs({'target','subtarget','focustarget','aggro'}) do
+    local frame = defaults[name..'_bar']
+    frame.pos = default_bar_position(name, frame)
+end
 if settings_old.pos then
     -- settings.pos was the old position setting. if it's set that means we're upgrading from 1.0
     defaults.target_bar.pos = settings_old.pos
