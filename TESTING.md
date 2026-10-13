@@ -12,6 +12,9 @@ Read this first when preparing or evaluating a development/testing batch. This c
 - **Verification:** Check root filenames and links; compare migration against its starting commit and confirm only Markdown documentation changed.
 - **In-game testing:** Not performed for this documentation-only change; existing addon behavior has not been revalidated.
 
+- **Recorded migration commit:** [`7300e6b`](https://github.com/rerorriM-Mirrorer/enemybar2/commit/7300e6bae4cb7e0fd7d9b0b77deb9dcfeee2aace).
+- **Verified result:** Git comparison against the recorded starting commit lists Markdown changes only; `WORKFLOW.md` and `TESTING.md` exist at the repository root. No Lua source paths changed.
+
 ## Tests for the next functional batch
 
 List the requested change, actions to perform, expected outcomes, previously working behavior to retest, and results actually observed. For UI positioning tests, record the character, resolution, visibility state and actual observed behavior when relevant.
@@ -28,7 +31,7 @@ No historical test results were reconstructed or verified during this documentat
 
 | Date | Batch | Item | Type | Commit/reference | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 2026-10-13 | Documentation adoption | WORKFLOW.md; TESTING.md | Repository documents | Migration commit in Git history | No testing package or Lua changes |
+| 2026-10-13 | Documentation adoption | WORKFLOW.md; TESTING.md | Repository documents | [`7300e6b`](https://github.com/rerorriM-Mirrorer/enemybar2/commit/7300e6bae4cb7e0fd7d9b0b77deb9dcfeee2aace) | No testing package or Lua changes |
 
 ## User-provided materials, observations, and requests
 
