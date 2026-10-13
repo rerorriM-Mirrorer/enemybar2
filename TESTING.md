@@ -25,6 +25,8 @@ No historical test results were reconstructed or verified during this documentat
 
 ## Cumulative changelog
 
+- **2026-10-13 — Navigation refinement:** Corrected the heading levels for the Testing Packages and Shared Development Conventions sections in `WORKFLOW.md` ([`660530d`](https://github.com/rerorriM-Mirrorer/enemybar2/commit/660530d853e8372e066a4829b828901107fa30f2)). Documentation only; no addon code changed.
+
 - **2026-10-13:** Adopted the shared two-document development convention without changing executable addon behavior.
 
 ## Delivered packages and documents
