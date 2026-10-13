@@ -192,7 +192,7 @@ For packet-dependent work, maintain `docs/PACKETS.md` recording:
 ---
 
 
-####  Testing Packages & Development Records
+### Testing Packages & Development Records
 
 - **README.md**
 
@@ -217,7 +217,7 @@ For packet-dependent work, maintain `docs/PACKETS.md` recording:
 ---
 
 
-#### Shared Development Conventions
+### Shared Development Conventions
 
 Use the consolidated `WORKFLOW.md` maintained in the NPCMirror repository as the reference for shared practices across projects. It contains AGATHOS, DESIGN, and WORKFLOW in that order.
 
