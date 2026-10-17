@@ -24,8 +24,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --]]
 
 _addon.name = 'enemybar2'
-_addon.author = 'mmckee,akaden'
-_addon.version = '1.1.0'
+_addon.author = 'mmckee,akaden,Awake'
+_addon.version = '1.1.1-a.20261017.10'
 _addon.language = 'English'
 _addon.commands = {'enemybar','eb'}
 
@@ -37,6 +37,34 @@ packets = require('packets')
 
 require('bars')
 require('actionTracking')
+local bar_layout = require('barLayout')
+local frame_names = {'target','subtarget','focustarget','aggro'}
+local last_ui_width, last_ui_height
+local animation_settings=require("animationSettings")
+local animation_preview=require("animationPreview")
+local gauge_effects=require("ffxiGauge")
+local function save_positions()
+    for i, name in ipairs(frame_names) do
+        local b=bar_sets[i][1]
+        if b then settings[name..'_bar'].pos={x=b.x,y=b.y} end
+    end
+    settings:save()
+end
+local function move_group(group,dx,dy,constrain)
+    local ui=windower.get_windower_settings()
+    if constrain then dx,dy=bar_layout.clamp(group,dx,dy,ui.ui_x_res,ui.ui_y_res) end
+    for _,b in ipairs(group) do bars.move(b,b.x+dx,b.y+dy) end
+    return dx,dy
+end
+local function recover_bounds()
+    if not bar_sets then return end
+    local ui=windower.get_windower_settings()
+    bars.x_res,bars.y_res=ui.ui_x_res,ui.ui_y_res
+    for i,group in ipairs(bar_sets) do
+        if settings[frame_names[i]..'_bar'].bounds ~= false then move_group(group,0,0,true) end
+    end
+    last_ui_width,last_ui_height=ui.ui_x_res,ui.ui_y_res
+end
 
 player_id = nil
 party_members = {}
@@ -82,11 +110,16 @@ function initialize_bars()
     end
 
     bar_sets = {{target_bar}, {subtarget_bar}, {focustarget_bar}, aggro_bars}
+    for i,group in ipairs(bar_sets) do
+        for _,b in ipairs(group) do b.frame_name=frame_names[i] end
+    end
+    dragged=nil
+    recover_bounds()
 end
 
 function update_bar(bar, target, show)
     if state.setup then
-        if show then
+        -- Setup keeps every frame visible; mouse handling limits draggable groups.
             bars.show(bar)
             if bar == target_bar then bars.update_target(bar, "Target Name", 79, 12.1, 1)
             elseif bar == subtarget_bar then bars.update_target(bar, "Subtarget Name", 53, 11.4, 2)
@@ -96,10 +129,17 @@ function update_bar(bar, target, show)
             bars.update_enmity(bar, "Mob Target", {red=102, green=255, blue=255})
             bars.update_status(bar, {})
             bars.set_name_color(bar, {red=255, green=180, blue=180})
-        else
-            bars.hide(bar)
-        end
     else
+        if target and target.hpp==0 and bar~=target_bar then
+            if show and not state.in_cs and bar.target_id==target.id then
+                bars.update_target(bar,target.name,0,0,nil,target.id)
+            end
+            bars.hide(bar);bar.death_id,bar.death_at=nil,nil;return
+        end
+        if target and show and not state.in_cs and target.hpp==0
+            and bar.death_id==target.id and bar.death_at and os.clock()-bar.death_at>=.65 then
+            bars.hide(bar);return
+        end
         if target ~= nil and show and not state.in_cs then     
             bars.show(bar)
 
@@ -113,7 +153,7 @@ function update_bar(bar, target, show)
             elseif st and st.id == target.id then
                 target_type = 2
             end
-            bars.update_target(bar, target.name, target.hpp, dist, target_type)
+            bars.update_target(bar, target.name, target.hpp, dist, target_type, target.id)
 
             local action = tracked_actions[target.id]
             if action and not action.complete then
@@ -144,8 +184,13 @@ function update_bar(bar, target, show)
             bars.update_status(bar, tracked_debuff[target.id])
 
             bars.set_name_color(bar, get_tint_by_target(target))
+        elseif bar==target_bar and not target and show and not state.in_cs and bar.death_at
+            and os.clock()-bar.death_at<.65 then
+            -- Keep the observed dead target's own text counting after auto-detarget.
+            bars.show(bar)
         else
             bars.hide(bar)
+            if not show or state.in_cs then bar.death_id,bar.death_at=nil,nil end
         end
     end
 end
@@ -157,6 +202,16 @@ function update_aggro_bars(show)
         end
     else
         local ordered_aggro = get_ordered_aggro()
+        -- Capture a killing-hit ghost before compacting surviving aggro rows.
+        for _,bar in ipairs(aggro_bars) do
+            -- Setup uses a label as rendering identity, not a numeric entity ID.
+            local mob=type(bar.target_id)=='number' and windower.ffxi.get_mob_by_id(bar.target_id)
+            if mob and mob.hpp==0 then
+                if show and not state.in_cs then bars.update_target(bar,mob.name,0,0,nil,mob.id) end
+                bars.hide(bar);bar.death_id,bar.death_at=nil,nil
+            end
+        end
+        local selected = settings.target_bar.show and windower.ffxi.get_mob_by_target('t')
 
         local e_bar_i = 1
         if show and not state.in_cs then
@@ -165,16 +220,19 @@ function update_aggro_bars(show)
                     break
                 end
                 local bar = aggro_bars[e_bar_i]
-                target = windower.ffxi.get_mob_by_id(v.mob)
-                update_bar(bar, target, show)
-                e_bar_i = e_bar_i + 1
+                local target = windower.ffxi.get_mob_by_id(v.mob)
+                if target and target.hpp and target.hpp>0
+                    and (not selected or selected.id ~= target.id) then
+                    update_bar(bar, target, show)
+                    e_bar_i = e_bar_i + 1
+                end
             end
         end
         -- hide bars not updated (all of them, if show is off)
         for i=e_bar_i, (aggro_bars and #aggro_bars or 0) do
             local bar = aggro_bars[i]
             if bar then
-                bars.hide(bar)
+                update_bar(bar,nil,show)
             end
         end
     end
@@ -326,11 +384,190 @@ function cache_party_member(p, party_number)
     end
 end
 
+-- Awake: use UI dimensions, not the render buffer. Saved positions remain
+-- explicit; resetpos is the escape hatch after moving to a smaller client.
+local function default_bar_position(name, frame)
+    local ui = windower.get_windower_settings()
+    local width = frame.skin == 'ffxi' and math.max(16, frame.width+2) or frame.width+2
+    local bottom = math.max(0, ui.ui_y_res-72)
+    local x = math.max(0, math.floor((ui.ui_x_res-width)/2))
+    local y = bottom
+    if name == 'subtarget' then y = math.max(0, bottom-30)
+    elseif name == 'focustarget' then y = math.max(0, bottom-60)
+    elseif name == 'aggro' then
+        x = math.max(0, ui.ui_x_res-width-20)
+        local span = math.max(0, (frame.count-1)*frame.stack_padding)
+        if frame.stack_dir == 'down' then y = math.max(0, bottom-span)
+        else y = math.max(bottom, math.min(span, ui.ui_y_res-12)) end
+    end
+    return {x=x, y=y}
+end
+
+-- Shared validation keeps both short and legacy commands on one path.
+local function valid_rgb(r,g,b)
+    for _,raw in ipairs({r,g,b}) do
+        local v=tonumber(raw)
+        if not v or v~=math.floor(v) or v<0 or v>255 then return false end
+    end
+    return true
+end
+local function valid_dimension(setting,raw)
+    local v=tonumber(raw)
+    local limits={width={16,4096},font_size={1,72},count={1,32},stack_padding={0,4096}}
+    local range=limits[setting]
+    return v and v==math.floor(v) and v>=range[1] and v<=range[2]
+end
+
 function handle_command(c, ...)
     if not c then return end
     local args = L{...}
     c = c:lower()
-    if S{'set','s'}:contains(c) and args[1] and args[2] then
+    if c=='preview' then
+        if args[1]=='off' then animation_preview.clear();return end
+        local hpp=args[1]=='hp' and tonumber(args[2]) or nil
+        local name=normalize_bar_name((args[1]=='hp' and args[3] or args[2]) or 't')
+        if (args[1]~='ghost' and args[1]~='hp') or not name or name=='all' or
+            (args[1]=='hp' and (not hpp or hpp<1 or hpp>100 or hpp~=math.floor(hpp))) then
+            windower.add_to_chat(123,'EnemyBar: preview ghost [bar], preview hp <1..100> [bar], or preview off');return
+        end
+        if state.in_cs then windower.add_to_chat(123,'EnemyBar: preview unavailable during cutscenes');return end
+        local frame=settings[name..'_bar']
+        if frame.skin~='ffxi' then windower.add_to_chat(123,'EnemyBar: ghost preview requires ffxi skin');return end
+        local index=({target=1,subtarget=2,focustarget=3,aggro=4})[name]
+        local b=bar_sets[index][1]
+        animation_preview.start(frame,b.x,b.y,hpp)
+        return
+    end
+    local aliases={targetof='show_target',targeticon='show_target_icon',action='show_action',
+        distance='show_dist',debuffs='show_debuff',fontsize='font_size',spacing='stack_padding',edit='setup',move='setup'}
+    c=aliases[c] or c
+    if c=='hide' then return handle_command('set','show',args[1] or 't','off') end
+    if c=='show' and (#args==0 or (#args==1 and normalize_bar_name(args[1]))) then
+        return handle_command('set','show',args[1] or 't','on')
+    end
+    local toggles=S{'show_target','show_target_icon','show_action','show_dist','show_debuff',
+        'bold','italic','bounds','damage_trail','healing_effect','text_effect','hit_shake','low_hp_pulse','ghost_hit','ghost_glow','underbar_glow'}
+    if toggles:contains(c) and (#args==0 or (#args==1 and normalize_bar_name(args[1]))) then
+        local frame=normalize_bar_name(args[1] or 't')
+        local value=not settings[(frame=='all' and 'target' or frame)..'_bar'][c]
+        return handle_command('set',c,frame,value and 'on' or 'off')
+    end
+    if c=='stack_padding' then
+        if not args[1] then windower.add_to_chat(207,'EnemyBar: spacing '..settings.aggro_bar.stack_padding);return end
+        return handle_command('set',c,'a',args[1])
+    end
+    if c=='stack' then
+        local direction=args[1] or (settings.aggro_bar.stack_dir=='up' and 'down' or 'up')
+        if direction~='up' and direction~='down' then
+            windower.add_to_chat(123,'EnemyBar: stack [up/down]'); return
+        end
+        return handle_command('set','stack_dir','a',direction)
+    end
+    if c=='trail_alpha' then
+        if #args==0 or (#args==1 and normalize_bar_name(args[1])) then
+            local frame=normalize_bar_name(args[1] or 't')
+            for _,name in ipairs(frame_names) do
+                if frame=='all' or frame==name then
+                    windower.add_to_chat(207,'EnemyBar: '..name..' trail_alpha '..settings[name..'_bar'].trail_color.alpha)
+                end
+            end
+            return
+        end
+        local alpha=tonumber(args[1])
+        if not alpha or alpha<0 or alpha>255 then
+            windower.add_to_chat(123,'EnemyBar: trail_alpha 0..255 [frame]'); return
+        end
+        local frame=normalize_bar_name(args[2] or 't')
+        if not frame then windower.add_to_chat(123,'EnemyBar: unknown frame'); return end
+        for _,name in ipairs(frame_names) do
+            if frame=='all' or frame==name then settings[name..'_bar'].trail_color.alpha=alpha end
+        end
+        settings:save(); initialize_bars(); return
+    end
+    -- Short forms use values first, with an optional frame last. Legacy set
+    -- syntax still uses setting/frame/values. Keep one validation path.
+    local arity={pos=2,color=3,trail_color=3,skin=1,width=1,font=1,font_size=1,count=1,
+        stack_dir=1,stack_padding=1,show=1,bold=1,italic=1,bounds=1,locked=1,
+        background_alpha=1,animation_duration=1,damage_trail=1,trail_delay=1,trail_duration=1,
+        show_target=1,show_action=1,show_dist=1,show_debuff=1,show_target_icon=1,
+        healing_effect=1,text_effect=1,hit_shake=1,low_hp_pulse=1,
+        heal_duration=1,text_duration=1,pulse_period=1,ghost_hit=1}
+    for name in pairs(animation_settings.defaults) do arity[name]=1 end
+    arity.ghost_glow_color=3
+    if arity[c] then
+        local n=arity[c]
+        if #args==0 or (#args==1 and normalize_bar_name(args[1])) then
+            local frame=normalize_bar_name(args[1] or 't')
+            for _,name in ipairs(frame_names) do
+                if frame=='all' or frame==name then
+                    local value=settings[name..'_bar'][c]
+                    if type(value)=='table' then
+                        value=c=='pos' and (value.x..' '..value.y) or (value.red..' '..value.green..' '..value.blue)
+                    end
+                    windower.add_to_chat(207,'EnemyBar: '..name..' '..c..' '..tostring(value))
+                end
+            end
+            return
+        end
+        if #args==n or #args==n+1 then
+            if #args==n+1 and normalize_bar_name(args[1]) then
+                return handle_command('set',c,args[1],unpack(args,2,n+1))
+            end
+            local frame=args[n+1] or 't'
+            return handle_command('set',c,frame,unpack(args,1,n))
+        end
+        windower.add_to_chat(123,'EnemyBar: '..c..' needs '..n..' value(s), then optional frame')
+        return
+    end
+    if c == 'lock' or c == 'unlock' then
+        return handle_command('set','locked',args[1] or 'all',c=='lock' and 'on' or 'off')
+    end
+    if c == 'status' then
+        windower.add_to_chat(207,'EnemyBar '.._addon.version..': setup '..(state.setup and (state.setup_scope or 'all') or 'off'))
+        for _,name in ipairs(frame_names) do
+            local f=settings[name..'_bar']
+            windower.add_to_chat(207,string.format('%s: %s, width %g, saved pos %g %g, locked %s, bounds %s, trail %s',
+                name,f.skin,f.width,f.pos.x,f.pos.y,tostring(f.locked),tostring(f.bounds),tostring(f.damage_trail)))
+            windower.add_to_chat(207,string.format('  feedback: healing %s, text %s, shake %s, pulse %s',
+                tostring(f.healing_effect),tostring(f.text_effect),tostring(f.hit_shake),tostring(f.low_hp_pulse)))
+            windower.add_to_chat(207,string.format('  trail alpha %g, pulse period %g, ghost %s',
+                f.trail_color.alpha,f.pulse_period,tostring(f.ghost_hit)))
+            windower.add_to_chat(207,string.format('  seconds: fill %g, trail hold %g, trail slide %g, healing %g, text %g',
+                f.animation_duration,f.trail_delay,f.trail_duration,f.heal_duration,f.text_duration))
+            windower.add_to_chat(207,string.format('  split periods: foreground %g, underbar %g; settle %s',f.foreground_period,f.underbar_period,f.super_settle))
+            windower.add_to_chat(207,string.format('  underbar glow %s: alpha %g, height %gpx; flare alpha %g, height %gpx, width %gpx',
+                tostring(f.underbar_glow),f.underbar_glow_alpha,f.underbar_glow_height,
+                f.underbar_flare_alpha,f.underbar_flare_height,f.underbar_flare_width))
+            windower.add_to_chat(207,string.format('  ghost: lift %g up/%g right in %gs, hover %gs, drift %g up/%g right in %gs; alpha %g, period %g',
+                f.ghost_lift_up,f.ghost_lift_right,f.ghost_lift_duration,f.ghost_hover_duration,
+                f.ghost_drift_up,f.ghost_drift_right,f.ghost_fade_duration,f.ghost_alpha,f.ghost_period))
+            windower.add_to_chat(207,string.format('  shake: %s; small/large/super %g/%g/%gpx; rebound %g, decay %g, hold %gs, step %gs, horizontal %g',
+                f.shake_style,f.shake_small_px,f.shake_large_px,f.shake_super_px,
+                f.shake_rebound,f.shake_decay,f.shake_hold,f.shake_step,f.shake_horizontal))
+            windower.add_to_chat(207,string.format('  ghost glow %s: contact %gs; RGB %g/%g/%g, alpha %g, height %gpx, duration %gs; flare alpha %g, height %gpx, width %gpx',
+                tostring(f.ghost_glow),f.ghost_contact_duration,f.ghost_glow_color.red,f.ghost_glow_color.green,f.ghost_glow_color.blue,
+                f.ghost_glow_alpha,f.ghost_glow_height,f.ghost_glow_duration,f.ghost_flare_alpha,f.ghost_flare_height,f.ghost_flare_width))
+        end
+        return
+    end
+    if c == 'resetpos' then
+        local name = normalize_bar_name(args[1] or 't')
+        if not name then
+            windower.add_to_chat(123, 'EnemyBar: Unknown bar name')
+            return
+        end
+        local group={}
+        for i, frame_name in ipairs(frame_names) do
+            if name == 'all' or name == frame_name then
+                for _,b in ipairs(bar_sets[i]) do group[#group+1]=b end
+            end
+        end
+        local ui=windower.get_windower_settings()
+        local dx,dy=bar_layout.center(group,ui.ui_x_res,ui.ui_y_res)
+        move_group(group,dx,dy,true)
+        save_positions()
+        windower.add_to_chat(207, 'EnemyBar: position reset for "'..name..'" bar')
+    elseif S{'set','s'}:contains(c) and args[1] and args[2] then
         local setting = args[1]:lower()
         local bar = normalize_bar_name(args[2])
         if not bar then
@@ -347,17 +584,47 @@ function handle_command(c, ...)
             else
                 windower.add_to_chat(123, 'EnemyBar: not enough arguments for "'..setting..'"')
             end
-        elseif setting == 'color' then
+        elseif setting == 'color' or setting == 'trail_color' or setting=='ghost_glow_color' then
             if args[3] and args[4] and args[5] then
-                if not tonumber(args[3]) or not tonumber(args[4]) or not tonumber(args[5]) then
-                    windower.add_to_chat(123, 'EnemyBar: value is not numeric for "'..setting..'"')
+                if not valid_rgb(args[3],args[4],args[5]) then
+                    windower.add_to_chat(123, 'EnemyBar: '..setting..' requires three integers from 0 to 255')
                 else
                     set_setting(bar, setting, {red=tonumber(args[3]),green=tonumber(args[4]),blue=tonumber(args[5])})
                 end
             else
                 windower.add_to_chat(123, 'EnemyBar: not enough arguments for "'..setting..'"')
             end
+        elseif setting == 'skin' then
+            local skin = args[3] and args[3]:lower()
+            if skin == 'ffxi' or skin == 'classic' then
+                set_setting(bar, setting, skin)
+            else
+                windower.add_to_chat(123, 'EnemyBar: skin must be "ffxi" or "classic"')
+            end
+        elseif animation_settings.ranges[setting] then
+            if animation_settings.valid(setting,args[3]) then set_setting(bar,setting,tonumber(args[3]))
+            else
+                local range=animation_settings.ranges[setting]
+                windower.add_to_chat(123,'EnemyBar: '..setting..' must be '..range[1]..'..'..range[2])
+            end
+        elseif setting=='super_settle' then
+            if S{'off','small','both'}:contains(args[3]) then set_setting(bar,setting,args[3])
+            else windower.add_to_chat(123,'EnemyBar: super_settle off/small/both') end
+        elseif setting=='shake_style' then
+            if args[3]=='impact' or args[3]=='classic' then set_setting(bar,setting,args[3])
+            else windower.add_to_chat(123,'EnemyBar: shake_style impact/classic') end
+        elseif S{'background_alpha','animation_duration','trail_delay','trail_duration','heal_duration','text_duration','pulse_period'}:contains(setting) then
+            local value = tonumber(args[3])
+            local maximum = setting == 'background_alpha' and 255 or 10
+            if value and value >= 0 and value <= maximum and (setting~='pulse_period' or value>0) then
+                set_setting(bar, setting, value)
+            else
+                windower.add_to_chat(123, 'EnemyBar: '..setting..' must be between 0 and '..maximum)
+            end
         elseif S{'font','stack_dir'}:contains(setting) then
+            if setting=='stack_dir' and args[3]~='up' and args[3]~='down' then
+                windower.add_to_chat(123,'EnemyBar: stack direction must be up/down');return
+            end
             if args[3] then
                 set_setting(bar, setting, args[3])
             else
@@ -365,15 +632,15 @@ function handle_command(c, ...)
             end
         elseif S{'font_size','width','count','stack_padding'}:contains(setting) then
             if args[3] then
-                if not tonumber(args[3]) then
-                    windower.add_to_chat(123, 'EnemyBar: value is not numeric for "'..setting..'"')
+                if not valid_dimension(setting,args[3]) then
+                    windower.add_to_chat(123, 'EnemyBar: invalid '..setting..' (width 16..4096, font size 1..72, aggro count 1..32, spacing 0..4096; integers)')
                 else
                     set_setting(bar, setting, tonumber(args[3]))
                 end
             else
                 windower.add_to_chat(123, 'EnemyBar: not enough arguments for "'..setting..'"')
             end
-        elseif S{'show','show_target_icon','show_target','show_debuff','show_action','show_dist'}:contains(setting) then
+        elseif S{'show','show_target_icon','show_target','show_debuff','show_action','show_dist','bold','italic','bounds','locked','damage_trail','healing_effect','text_effect','hit_shake','low_hp_pulse','ghost_hit','ghost_glow','underbar_glow'}:contains(setting) then
             if args[3] then
                 local b = normalize_boolean(args[3])
                 if b == nil then
@@ -419,19 +686,48 @@ function handle_command(c, ...)
             end
         end
     elseif S{'demo','setup','debug','test'}:contains(c) then
-        if args[3] then
-            state.setup = normalize_boolean(args[3])
-        else
-            state.setup = not state.setup
+        local scope = args[1] and normalize_bar_name(args[1]) or 'individual'
+        local enabled = args[1] and normalize_boolean(args[1])
+        if args[1] and not scope and enabled==nil then
+            windower.add_to_chat(123,'EnemyBar: setup [t/st/ft/a/all] [on/off]'); return
         end
+        if enabled~=nil then state.setup=enabled; state.setup_scope='individual'
+        else
+            local explicit=args[2] and normalize_boolean(args[2])
+            if args[2] and explicit==nil then
+                windower.add_to_chat(123,'EnemyBar: setup state must be on/off'); return
+            end
+            if explicit~=nil then state.setup=explicit
+            else state.setup=not (state.setup and state.setup_scope==scope) end
+            state.setup_scope=scope
+        end
+        dragged=nil
         windower.add_to_chat(207, 'EnemyBar: setup mode is now "'..(state.setup and 'on' or 'off')..'"')
     elseif S{'help','h','man','manual'}:contains(c) then
-        helptext = [[Enemy Bar - Command List:')
-1. set/s [setting] [target/t/subtarget/st/aggro/a/all] [value] - set a setting to its value
-    setting: pos(x y)/font/font_size/color(r g b)/width/count/show/show_target_icon/show_debuff/show_dist/show_action/show_target
-2. focustarget/ft/f (player_name or id or blank or clear) - create a bar for a particular party member, mob by ID, or by current target (blank), or clear the current focus target
-3. setup/demo/debug/test - toggles setup mode displaying test versions of all options and enabling drag for each frame
-4. help/h/manual/man --Shows this menu.]]
+        local helptext = [[EnemyBar commands - [bar]: t/st/ft/a/all; default t.
+Animation: damage_trail/healing_effect/text_effect/hit_shake/low_hp_pulse/ghost_hit [on/off] [bar]. Omit state to toggle.
+Timing: animation_duration/trail_delay/trail_duration/heal_duration/text_duration/pulse_period <seconds> [bar]. Omit value to report.
+Color: color/trail_color <r> <g> <b> [bar]; background_alpha/trail_alpha <0..255> [bar].
+Appearance: width <pixels> [bar]; font "name" [bar]; fontsize <size> [bar]; bold/italic [on/off] [bar]; skin ffxi/classic [bar].
+Visibility: show/hide [bar]; targetof/targeticon/action/distance/debuffs [on/off] [bar].
+Position: pos <x> <y> [bar]; resetpos [bar]; lock/unlock [bar] (default all); bounds [on/off] [bar].
+Edit: setup/edit/move [bar] [on/off]. Basic: all visible, individual dragging. all: arrangement dragging.
+Aggro: stack [up/down] (bare toggles); spacing <pixels>; count <1..32> a.
+Ghost: ghost_lift_up/right, ghost_drift_up/right <pixels> [bar]; ghost_lift_duration/ghost_hover_duration/ghost_fade_duration <seconds> [bar].
+Ghost opacity: ghost_alpha <0..255> [bar]; ghost_period <seconds> [bar] (0 disables flicker).
+Pulse: foreground_period/underbar_period <seconds> [bar]; pulse_period sets both.
+Underbar glow: underbar_glow [on/off] [bar]; underbar_glow_alpha/underbar_flare_alpha <0..255> [bar].
+Underbar size: underbar_glow_height/underbar_flare_height/underbar_flare_width <pixels> [bar].
+HP preview: preview hp <1..100> [bar] shows that HP for 8 seconds. Critical foreground flashes normal/white; underbar stays red.
+Super settling: super_settle off/small/both [bar]. Preview: preview ghost [bar]; preview off.
+Shake: shake_style impact/classic [bar]; shake_small_px/shake_large_px/shake_super_px <pixels> [bar].
+Rebounds: shake_rebound/shake_decay <ratio> [bar]; shake_hold/shake_step <seconds> [bar]; shake_horizontal <ratio> [bar].
+Ghost glow: ghost_glow [on/off] [bar]; ghost_contact_duration/ghost_glow_duration <seconds> [bar].
+Glow tuning: ghost_glow_alpha/ghost_flare_alpha <0..255> [bar]; ghost_glow_height/ghost_flare_height/ghost_flare_width <pixels> [bar].
+Glow color: ghost_glow_color <r> <g> <b> [bar]. All tuning commands report their value when omitted.
+Focus: ft [name/id/clear]. Bare ft pins the current target.
+Legacy: set/s <setting> <bar> <value(s)> remains available.
+status reports version, layout, switches and animation timings. help/h/manual/man shows this list.]]
         for _, line in ipairs(helptext:split('\n')) do
                 windower.add_to_chat(207, line)
         end
@@ -482,13 +778,20 @@ function normalize_boolean(b)
 end
 
 function set_setting(bar, setting, v)
-    if bar == 'all' then
-        settings['target_bar'][setting] = v
-        settings['subtarget_bar'][setting] = v
-        settings['aggro_bar'][setting] = v
-        settings['focustarget_bar'][setting] = v
-    else
-        settings[bar..'_bar'][setting] = v
+    for _,name in ipairs(frame_names) do
+        if bar=='all' or bar==name then
+            if setting=='color' or setting=='trail_color' then
+                -- Changing RGB preserves this frame's independently saved alpha.
+                local existing=settings[name..'_bar'][setting]
+                existing.red,existing.green,existing.blue=v.red,v.green,v.blue
+            else
+                settings[name..'_bar'][setting]=v
+                if setting=='pulse_period' then
+                    settings[name..'_bar'].foreground_period=v
+                    settings[name..'_bar'].underbar_period=v
+                end
+            end
+        end
     end
     windower.add_to_chat(207, 'EnemyBar: "'..setting..'" updated for "'..bar..'" bar')
     settings:save()
@@ -496,6 +799,12 @@ function set_setting(bar, setting, v)
 end
 
 windower.register_event('prerender', function()
+    gauge_effects.update_ghosts()
+    animation_preview.update()
+    local ui=windower.get_windower_settings()
+    if ui.ui_x_res~=last_ui_width or ui.ui_y_res~=last_ui_height then
+        recover_bounds() -- runtime recovery; keep saved layouts for larger clients
+    end
     if player_id then
         update_bar(target_bar, windower.ffxi.get_mob_by_target('t'), settings.target_bar.show)
         update_bar(subtarget_bar, windower.ffxi.get_mob_by_target('st'), settings.subtarget_bar.show)
@@ -513,9 +822,11 @@ windower.register_event('incoming chunk', function(id, data)
     handle_action_packet(id, data)
     handle_party_packets(id, data)
 end)
-windower.register_event('zone change', reset_tracked_actions)
+windower.register_event('zone change', function() reset_tracked_actions();animation_preview.clear();gauge_effects.clear_ghosts() end)
+windower.register_event('unload', function() animation_preview.clear();gauge_effects.clear_ghosts() end)
 windower.register_event('addon command', handle_command)
 windower.register_event('logout', function(...)
+    animation_preview.clear();gauge_effects.clear_ghosts()
     player_id = nil    
     state = {}      
 end)
@@ -530,6 +841,7 @@ end)
 windower.register_event('status change', function(new_status_id)
     if new_status_id == 4 then
         state.in_cs = true
+        animation_preview.clear();gauge_effects.clear_ghosts()
     else
         state.in_cs = false
     end
@@ -556,9 +868,7 @@ windower.register_event('mouse', function(type, x, y, delta, blocked)
                 d_y = y - dragged.y
             end
 
-            for i, b in ipairs(dragged.bars) do
-                    bars.move(b, b.x + d_x, b.y + d_y)
-            end
+            d_x,d_y=move_group(dragged.bars,d_x,d_y,dragged.constrain)
             dragged.x = dragged.x + d_x
             dragged.y = dragged.y + d_y
             return true
@@ -566,11 +876,21 @@ windower.register_event('mouse', function(type, x, y, delta, blocked)
 
     -- Mouse left click
     elseif type == 1 then
-        if not state.setup then return false end
-        for _, s in ipairs(bar_sets) do
+        for group_index, s in ipairs(bar_sets) do
             for _, b in ipairs(s) do
-                if bars.hover(b, x, y) then
-                    dragged = {bars = s, x = x , y = y}
+                local allowed=not state.setup or state.setup_scope=='individual' or
+                    state.setup_scope=='all' or state.setup_scope==b.frame_name
+                if allowed and bars.hover(b, x, y) and (state.setup or not settings[frame_names[group_index]..'_bar'].locked) then
+                    local group=s
+                    local constrain=settings[frame_names[group_index]..'_bar'].bounds~=false
+                    if state.setup and state.setup_scope=='all' then
+                        group={}; constrain=false
+                        for i,set in ipairs(bar_sets) do
+                            constrain=constrain or settings[frame_names[i]..'_bar'].bounds~=false
+                            for _,part in ipairs(set) do group[#group+1]=part end
+                        end
+                    end
+                    dragged = {bars = group, x = x , y = y, constrain=constrain}
                     return true
                 end
             end
@@ -579,11 +899,7 @@ windower.register_event('mouse', function(type, x, y, delta, blocked)
     -- Mouse left release
     elseif type == 2 then
         if dragged then
-            settings.target_bar.pos = {x=target_bar.x,y=target_bar.y}
-            settings.subtarget_bar.pos = {x=subtarget_bar.x,y=subtarget_bar.y}
-            settings.focustarget_bar.pos = {x=focustarget_bar.x,y=focustarget_bar.y}
-            settings.aggro_bar.pos = {x=aggro_bars[1].x,y=aggro_bars[1].y}
-            settings:save()
+            save_positions()
             dragged = nil
             return true
         end
@@ -602,33 +918,12 @@ if windower.ffxi.get_info().logged_in then
     party_members = {}
 end
 
-defaults = {}
-defaults.target_bar = {
-    pos={x=650,y=750}, width=600,
-    color={alpha=255,red=255,green=0,blue=0},
-    font='Arial', font_size=14,
-    show=true, show_target=false, show_target_icon=false,
-    show_action=false, show_dist=false, show_debuff=false}
-defaults.subtarget_bar = {
-    pos={x=680,y=700}, width=300,
-    color={alpha=255,red=12,green=50,blue=101},
-    font='Arial', font_size=12,
-    show=true, show_target=false, show_target_icon=false,
-    show_action=false, show_dist=false, show_debuff=false}
-defaults.focustarget_bar = {
-    pos={x=680,y=670}, width=250,
-    color={alpha=255,red=93,green=0,blue=255},
-    font='Arial', font_size=12,
-    show=true, show_target=false, show_target_icon=false,
-    show_action=false, show_dist=false, show_debuff=false}
-defaults.aggro_bar = {
-    pos={x=350,y=550}, width=180,
-    color={alpha=255,red=0,green=150,blue=50},
-    font='Arial', font_size=9,
-    show=false, show_target=false, show_target_icon=false,
-    show_action=false, show_dist=false, show_debuff=false,
-    count=6, stack_dir='down', stack_padding = 27}
+defaults = require('defaultPreset')()
 settings_old = config.load({})
+for _, name in ipairs({'target','subtarget','focustarget','aggro'}) do
+    local frame = defaults[name..'_bar']
+    frame.pos = default_bar_position(name, frame)
+end
 if settings_old.pos then
     -- settings.pos was the old position setting. if it's set that means we're upgrading from 1.0
     defaults.target_bar.pos = settings_old.pos
@@ -638,6 +933,30 @@ if settings_old.pos then
     defaults.subtarget_bar.font_size = settings_old.font_size
 end
 settings = config.load(defaults)
+-- Seed split clocks from each old saved shared period once; preserve experimentation.
+for _,name in ipairs(frame_names) do
+    local old=settings_old[name..'_bar']
+    if old and old.pulse_period then
+        for _,key in ipairs({'foreground_period','underbar_period'}) do
+            if old[key]==nil then settings[name..'_bar'][key]=old.pulse_period end
+        end
+    end
+end
+-- Awake: adopt the requested native subtarget/focus presets once for existing
+-- installs. A saved revision marker preserves later user color/skin edits.
+local migrated=false
+for _,name in ipairs({'subtarget','focustarget'}) do
+    local old=settings_old[name..'_bar']
+    local frame=settings[name..'_bar']
+    if old and not old.native_style_revision then
+        frame.skin='ffxi'
+        frame.color={alpha=frame.color.alpha or 255,red=defaults[name..'_bar'].color.red,
+            green=defaults[name..'_bar'].color.green,blue=defaults[name..'_bar'].color.blue}
+        migrated=true
+    end
+    frame.native_style_revision=1
+end
+if migrated then settings:save() end
 config.register(settings, initialize_bars)
 
 cache_party_members()

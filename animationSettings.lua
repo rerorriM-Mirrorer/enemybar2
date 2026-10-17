@@ -1,0 +1,46 @@
+-- Awake: one source of defaults and command ranges for animation tuning.
+local settings={}
+settings.defaults={foreground_period=.25,underbar_period=.1,ghost_lift_up=6,
+    ghost_lift_right=1,ghost_drift_up=9,ghost_drift_right=1,
+    ghost_lift_duration=.2,ghost_hover_duration=.8,ghost_fade_duration=1,
+    ghost_alpha=255,ghost_period=.1,super_settle='small',
+    shake_style='impact',shake_small_px=1,shake_large_px=4,shake_super_px=8,
+    shake_rebound=.5,shake_decay=.5,shake_hold=.05,shake_step=1/30,shake_horizontal=0,
+    ghost_contact_duration=.05,ghost_glow=true,ghost_glow_alpha=160,
+    ghost_glow_color={red=240,green=76,blue=100},ghost_glow_height=6,
+    ghost_glow_duration=.4,ghost_flare_alpha=230,ghost_flare_height=18,ghost_flare_width=3,
+    underbar_glow=true,underbar_glow_alpha=80,underbar_glow_height=3,
+    underbar_flare_alpha=140,underbar_flare_height=8,underbar_flare_width=3}
+settings.ranges={foreground_period={.02,10},underbar_period={.02,10},
+    ghost_lift_up={-100,100},ghost_lift_right={-100,100},ghost_drift_up={-100,100},
+    ghost_drift_right={-100,100},ghost_lift_duration={0,10},ghost_hover_duration={0,10},
+    ghost_fade_duration={.01,10},ghost_alpha={0,255},ghost_period={0,10},
+    shake_small_px={0,100},shake_large_px={0,100},shake_super_px={0,100},
+    shake_rebound={0,2},shake_decay={0,1},shake_hold={0,10},shake_step={.001,10},
+    shake_horizontal={-2,2},ghost_contact_duration={0,10},ghost_glow_alpha={0,255},
+    ghost_glow_height={0,100},ghost_glow_duration={0,10},ghost_flare_alpha={0,255},
+    ghost_flare_height={0,100},ghost_flare_width={0,100},
+    underbar_glow_alpha={0,255},underbar_glow_height={0,100},
+    underbar_flare_alpha={0,255},underbar_flare_height={0,100},underbar_flare_width={0,100}}
+function settings.valid(name,raw)
+    local v=tonumber(raw);local r=settings.ranges[name]
+    return v and r and v>=r[1] and v<=r[2] and
+        (not name:match('_alpha$') or v==math.floor(v))
+end
+local function copy(value)
+    if type(value)~='table' then return value end
+    local out={}
+    for k,v in pairs(value) do out[k]=copy(v) end
+    return out
+end
+function settings.snapshot(options)
+    local result={}
+    for name,value in pairs(settings.defaults) do
+        -- Explicit false must survive, and colors must belong to this snapshot.
+        local chosen=options[name]
+        if chosen==nil then chosen=value end
+        result[name]=copy(chosen)
+    end
+    return result
+end
+return settings

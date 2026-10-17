@@ -26,7 +26,8 @@ function handle_action_packet(id, data)
         track_enmity(ai)
         track_actions(ai)
         track_debuffs(ai)
-    elseif 0x029 then
+    -- Only action-message packets have these offsets.
+    elseif id == 0x029 then
         local message_id = data:unpack('H',0x19)
         if not message_id then return end
         message_id = message_id%0x8000
@@ -244,7 +245,8 @@ function clean_tracked_actions()
         if not mob or mob.hpp == 0 then
             tracked_debuff[id] = nil
         else
-            for i,debuff in ipairs(debuffs) do
+            -- Status IDs are sparse keys, not an array.
+            for i,debuff in pairs(debuffs) do
                 -- if the duration is much longer than +50%, let's assume it wore. 
                 if time - debuff.time > debuff.duration * 1.5 then 
                     tracked_debuff[id][debuff.effect] = nil
