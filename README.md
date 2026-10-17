@@ -1,118 +1,127 @@
 # enemybar2
 
-Native FFXI target, subtarget, focus and aggro health bars for Windower 4. Main/focus are pink, subtarget is TP blue and aggro is pale MP green. The current animation experiment is **Batch 11 hotfix, 1.1.1-a.20261017.11**. Start with `TESTING.md` for the current checks; the prior packages and observations are recorded below those checks.
+Native FFXI target, subtarget, focus and aggro health bars for Windower4. Current test build: **Batch12, 1.1.1-a.20261017.12**. Read `TESTING.md` first for installation, current checks and the cumulative test record.
 
-Saved character positions, widths, colors, fonts and animation tuning take precedence over defaults. The package contains no `data` directory. New installs use the supplied Franklet preset with screen-relative positions: main near bottom center, subtarget/focus above it, aggro to the right. The same six native gauge slices are used for every bar.
+The complete install contains no `data` directory. Overlay its `enemybar2` folder onto the installed addon and reload. Saved settings take precedence; new defaults resolve the supplied `settings(20261017-053248).xml` globals plus Franklet overrides. New positions are computed relative to the client screen; literal uploaded coordinates and character names are not baked in.
 
-## Everyday commands
+## Start here
 
-Commands use values followed by an optional bar: `t`, `st`, `ft`, `a`, or `all`. Omit the bar to address main target. Original `//eb set <setting> <bar> <values>` and frame-first shorthand remain supported. Bare value commands report their current values. Feature switches support on/off and bare toggles.
+```text
+//lua reload enemybar2
+//eb defaults animations
+//eb preview hp 5
+//eb preview ghost
+```
 
-| Command | Behavior |
+`defaults animations` is an explicit opt-in for existing characters, useful for trying the new preset on Cioara. It replaces animation/timing/effect/trail-color settings for the main bar, retaining positions, widths, font and other layout/visibility choices. Append `all` to apply each frame's own defaults to all four groups. Omit this command to retain your saved experiments. A reload alone merges missing settings without replacing existing values.
+
+Commands take values first, then optional `t`, `st`, `ft`, `a`, or `all`; default is `t`. Numeric, color and style commands report settings when their value is omitted. Switches toggle when entered bare; explicit on/off is idempotent. Legacy `//eb set <setting> <bar> <values>` and frame-first shorthand remain supported.
+
+| Everyday command | Behavior |
 | --- | --- |
-| `//eb status` / `//eb help` | Version and configuration / command list. |
-| `//eb setup [bar] [on/off]` | Show all guides; basic setup drags individual groups, `setup all` drags the arrangement, `setup st` restricts dragging to subtarget. Setup overrides locks. |
-| `//eb edit` / `//eb move` | Setup aliases. |
-| `//eb lock [bar]` / `//eb unlock [bar]` | Lock/unlock normal dragging; default all. |
-| `//eb resetpos [bar]` | Centre and save main, selected group, or entire arrangement. |
-| `//eb pos <x> <y> [bar]` | Set a position. |
-| `//eb width <pixels> [bar]` | Gauge width. |
-| `//eb show [bar]` / `//eb hide [bar]` | Display/hide a group. |
-| `//eb stack [up/down]` | Aggro stack direction; bare toggles. |
-| `//eb spacing <pixels>` / `//eb count <number> a` | Aggro spacing / maximum rows. |
-| `//eb ft [name/id/clear]` | Pin a focus target; bare uses current target, `ft clear` removes it. |
-| `//eb color <r> <g> <b> [bar]` | Fill tint, preserving alpha. |
-| `//eb trail_color <r> <g> <b> [bar]` | Base red-trail tint, preserving trail alpha. |
-| `//eb trail_alpha <0..255> [bar]` | Trail base opacity. |
-| `//eb background_alpha <0..255> [bar]` | Trough opacity; default 128. |
-| `//eb font "name" [bar]` / `//eb fontsize <size> [bar]` | Font / size; default Arial, bold and italic. |
-| `//eb bold [on/off] [bar]` / `//eb italic [on/off] [bar]` | Text styling. |
-| `//eb bounds [on/off] [bar]` | Keep gauge geometry within screen bounds. |
-| `//eb targetof/targeticon/action/distance/debuffs [on/off] [bar]` | Optional labels/indicators. |
-| `//eb skin ffxi/classic [bar]` | Native/current or original renderer. Ghost effects require ffxi. |
+| `//eb` / `//eb help [topic]` | BattleStations-style chat-only help; bare and unknown commands show help. Topics: general, flash, ghost, underbar, shake, timing, layout, appearance, all. |
+| `//eb status` | Version, layout, switches, timings and animation controls. |
+| `//eb restart` | Dispose previews, detached ghosts and live bars, then dispatch one reload. |
+| `//eb unload` | Same cleanup, then dispatch one unload. |
+| `//eb defaults animations [bar]` | Apply the baked animation preset explicitly. |
+| `//eb preview hp <1..100> [bar]` | Present chosen HP for8s; exposed-trail glow lasts through the configured hold/slide. |
+| `//eb preview ghost [bar]` | Demonstrate a large loss with the selected bar's saved ghost settings. |
+| `//eb preview off` | Close the demonstration; detached ghosts finish naturally. |
 
-## Animation controls
+The new main preset uses a400px configured width, .1s foreground/underbar clocks, full trail opacity,2s trail hold/.5s slide,1.2s numeric counting and classic shake with both settling stages. Its ghost has alpha100, no contact/hover/lift distance, .9s lift phase and1s final fade with1px downward/1px right drift. Glow maximum extension33px, flare extension60px/width33px; underbar glow alpha50/extension33px, flare alpha78/extension45px/width30px. Existing Lionstag/Cioara saves remain their own until explicitly changed.
 
-Every row below is a command name after `//eb`. Append a bar to address it or `all` to change every bar; bare numeric/color/style commands report values. Saved values may differ from the listed defaults.
+## Critical foreground and red pulse
 
-Damage snaps the native fill to the observed HP. The red trail holds, then slides; further damage restarts its hold from the current edge. Healing grows white fill back toward the configured tint with green text feedback. Red text flashes only for losses of at least 25 percentage points. From 50% HP downward the underbar pulses normal/brighter red, retaining those same colors below 10%. At 10% and below the foreground sharply alternates its normal tint and true white at constant configured opacity. Underbar opacity still strengthens linearly as HP falls; a saved trail alpha of 255 already makes it fully opaque. Zero HP cancels the trail hold and collapses it in .15 seconds; main briefly shows zero, while zero-HP aggro entries immediately disappear.
+From50% downward the red underbar smoothly pulses between its normal and brighter red; it never switches to white below10%. Its opacity still increases linearly as HP falls, unless the saved base trail alpha already equals full opacity. Healing retains its green/white feedback priority. At10% and below, the foreground sharply alternates normal fill and a neutral silhouette tinted with the chosen flash color/opacity.
 
-### Underbar glow and flares — Batch 10
-
-Small versions of the ghost glow decorate the exposed red damage interval, between the shortened live HP edge and the delayed trail edge. The soft middle follows that interval's current width; flares track both its endpoints, including the held trail and its shrinking edge. The glow is drawn above the trail, below the foreground, using brighter red tints derived from the underbar pulse and its opacity. It remains stationary during shakes and hides when the trail catches up, with the bar, or during green healing feedback. It does not inherit the ghost's motion, flicker or lifetime. Existing ghost tuning and the **75-percentage-point-or-larger** trigger are unchanged.
-
-| Command after `//eb` | New default | Meaning |
-| --- | --- | --- |
-| `underbar_glow [on/off] [bar]` | on | Toggle glow and both flares together. |
-| `underbar_glow_alpha <0..255> [bar]` | 80 | Glow strength, multiplied by the underbar opacity; 0 hides only the middle. |
-| `underbar_glow_height <0..100> [bar]` | 3 | Glow extension above and below the 9px underbar. |
-| `underbar_flare_alpha <0..255> [bar]` | 140 | Flare strength, multiplied by underbar opacity; 0 hides only the flares. |
-| `underbar_flare_height <0..100> [bar]` | 8 | Additional upward flare reach. |
-| `underbar_flare_width <0..100> [bar]` | 3 | Each flare's width, capped on nearly empty bars; 0 hides flares. |
-| `preview hp <1..100> [t/st/ft/a]` | — | Show chosen HP for 8 seconds, without a detached ghost. |
-
-Try `//eb preview hp 50`, then `//eb preview hp 5` to compare the underbar and critical foreground. The exposed red interval and its glow are visible during the configured trail hold/slide; the HP demonstration remains for8s after the trail catches up. HP previews report their chosen percentage in chat. Use `//eb preview ghost` to compare your existing ghost beside the underbar glow. `//eb preview off` closes the demonstration. Numeric commands without values report settings; append `all` to tune every bar. For a more visible comparison, try glow alpha160/height6 and flare alpha220/height16/width6; these are optional values, not forced changes to saved settings. The supplied XML is a tuning reference, not bundled install data, and this batch does not replace existing defaults with Franklet's latest experiments.
-
-### Impact shake — new controls
-
-The new `impact` style uses one decreasing sequence of held integer offsets. Random direction reverses the whole sequence. Text and red trail stay stationary. Medium hits are losses greater than 50 percentage points; super hits require `ghost_hit` and a loss of at least 75 points. Small hits remain subtle.
-
-| Command | New default | Meaning / accepted values |
-| --- | --- | --- |
-| `shake_style impact/classic` | impact | New decreasing rebounds, or the previous fixed sequences. |
-| `shake_small_px <pixels>` | 1 | Initial ordinary-hit displacement, 0..100. |
-| `shake_large_px <pixels>` | 4 | Initial medium-hit displacement, 0..100. |
-| `shake_super_px <pixels>` | 8 | Initial super-hit displacement, 0..100. |
-| `shake_hold <seconds>` | .05 | First displacement hold, 0..10. |
-| `shake_step <seconds>` | .033333333 | Each later rebound hold, .001..10. |
-| `shake_rebound <ratio>` | .5 | First rebound relative to the initial displacement, 0..2. |
-| `shake_decay <ratio>` | .5 | Each subsequent rebound relative to the preceding one, 0..1. |
-| `shake_horizontal <ratio>` | 0 | Horizontal displacement relative to vertical, -2..2; zero gives vertical only. |
-| `super_settle off/small/both` | Saved choice; main both | Impact: 2/3/4 phases. Classic: prior no/small/medium-then-small settling. |
-
-Impact `both` defaults to **8, -4, 2, -1, 0px** over .15 seconds, multiplied by random direction. `small` ends after the 2px correction at .1167s; `off` ends after the first rebound at .0833s. Rounding keeps every shake position on whole pixels. Impact strengths/timings do not modify the classic comparison sequence.
-
-### Ghost contact, glow and edge flares — new controls
-
-A loss of at least 75 percentage points captures an independent lost-section copy immediately. It remains solid white and stationary during contact, then follows the existing lift/hover/drift/flicker/fade settings. The soft glow contracts vertically and fades; two narrow edge flares follow the chunk. Its horizontal width continues to represent the lost section. Target changes, bar hiding/recreation and preview replacement let detached effects finish; zoning, cutscenes, logout and unloading clear them.
-
-| Command | New default | Meaning / accepted values |
-| --- | --- | --- |
-| `ghost_contact_duration <seconds>` | .05 | Solid white hold before lift and flicker, 0..10; 0 restores immediate lift/flicker. |
-| `ghost_glow [on/off]` | on | Both the soft glow and edge flares; bare toggles. |
-| `ghost_glow_color <r> <g> <b>` | 240 76 100 | Glow tint, RGB integers 0..255; edges use a paler version. |
-| `ghost_glow_alpha <alpha>` | 160 | Maximum glow opacity, integer 0..255. |
-| `ghost_glow_height <pixels>` | 6 | Additional reach above and below the 9px chunk, 0..100. |
-| `ghost_glow_duration <seconds>` | .4 | Glow contraction/fade after contact, 0..10; 0 hides glow. It ends no later than the chunk. |
-| `ghost_flare_alpha <alpha>` | 230 | Maximum edge-flare opacity, integer 0..255; 0 hides flares. |
-| `ghost_flare_height <pixels>` | 18 | Additional upward flare reach, 0..100. |
-| `ghost_flare_width <pixels>` | 3 | Each edge's width, 0..100; 0 hides flares. |
-
-The glow is steady rather than flickering. Opacity is also limited by the ghost's and frame's configured alpha. Setting `ghost_glow_alpha 0` leaves the edge flares; `ghost_flare_alpha 0` leaves the soft middle. The glow textures are neutral procedural gradients. Three white silhouettes preserve native alpha/shape without its cyan cast; Batch 10 also uses them for the critical foreground's white phase. The six original live bar assets are unchanged.
-
-### Existing animation controls
-
-| Commands | Meaning |
+| Command after `//eb` | Main preset / behavior |
 | --- | --- |
-| `damage_trail`, `healing_effect`, `text_effect`, `hit_shake`, `low_hp_pulse`, `ghost_hit` | on/off; bare toggles. |
-| `animation_duration`, `trail_delay`, `trail_duration`, `heal_duration`, `text_duration` | Seconds, 0..10. |
-| `foreground_period`, `underbar_period` | Separate full-cycle periods, .02..10 seconds. |
-| `pulse_period` | Shared shortcut sets both clocks, >0..10 seconds. |
-| `ghost_lift_up`, `ghost_lift_right` | Initial movement in pixels, -100..100. |
-| `ghost_drift_up`, `ghost_drift_right` | Additional movement during fade, -100..100. |
-| `ghost_lift_duration`, `ghost_hover_duration` | Seconds, 0..10. |
-| `ghost_fade_duration` | Seconds, .01..10. |
-| `ghost_alpha` | Maximum chunk alpha, integer 0..255. |
-| `ghost_period` | Flicker full-cycle seconds, 0..10; 0 disables flicker. |
-| `preview ghost [t/st/ft/a]` / `preview off` | Demonstrate your current tuning / close demonstration. Detached chunks finish. |
+| `foreground_period <seconds> [bar]` | .1; full cycle, half normal and half alternate state. Range.02..10. |
+| `foreground_flash_color <r> <g> <b> [bar]` |255255255; channels are integers0..255. Neutral textures avoid the native fill's cyan cast. |
+| `foreground_flash_alpha <0..255> [bar]` |0: pink/off.255: full-opacity flash. Multiplied by the frame's overall opacity. |
+| `underbar_period <seconds> [bar]` |.1; independent red pulse clock, range.02..10. |
+| `pulse_period <seconds> [bar]` | Shortcut setting both clocks together. |
+| `low_hp_pulse [on/off] [bar]` | Toggle both low-health effects. |
 
-For the main new-install preset, the existing ghost is 1px up/0 right in .1s, .3s hover, then 9px up/1 right over a 2.5s fade; the new .05s contact makes its total 2.95s. Other frames retain their .2s lift/.8s hover/1s fade, plus .05s contact. `ghost_glow_duration` is separate from these movement timings.
+For white flashing: `//eb foreground_flash_color 255 255 255`, then `//eb foreground_flash_alpha 255`. For pink/off: set alpha0. A softer alternate example is RGB255205220 with alpha160. Reissue `//eb preview hp 5` to compare.
 
-Compare the previous feel with `//eb shake_style classic`, `//eb ghost_glow off`, `//eb ghost_contact_duration 0`; restore `impact`, `on`, `.05` respectively. No special full-health finisher is added in this batch: 100→0 still uses the ghost effect, leaving a distinct finishing-hit experiment for a later pass. Status-effect correctness work and the alternate Trust skin are deferred.
+## Detached ghost: movement, color and flickering height
 
-Developers: run `lua5.1 tests/impact_spec.lua`, `lua5.1 tests/impact_commands_spec.lua` and `lua5.1 tests/underbar_spec.lua` from the repository root. These check motion, geometry, overlay ownership, commands, critical colors, preview modes and cleanup with mocked client dependencies. See `docs/ANIMATION.md` for primary-source references and the sequence of design decisions.
+Ghosts still trigger on an **observed loss of at least75 HP percentage points**. Such a sample may combine updates; the addon does not label it as a proven individual attack. Snapshots retain their tuning and screen position across target changes, live-bar recreation and preview replacement. Scene transitions/unload clean them up.
+
+| Command after `//eb` | Default / meaning |
+| --- | --- |
+| `ghost_fade_to <white\|trail> [bar]` |white: stay white through opacity fade; trail restores the previous white-to-red transition. Affects the chunk; glow RGB remains separately controlled. |
+| `ghost_height_mode <off\|snap\|smooth> [bar]` |snap: held short/tall jumps on the opacity clock; smooth follows its cosine wave; off restores steady height apart from contraction. |
+| `ghost_height_min <0..1> [bar]` |.35: minimum fraction of the current glow/flare extension. Existing height settings are the maxima. |
+| `ghost_height_strength <0..1> [bar]` |1: full modulation;0 disables height variation. |
+| `ghost_glow_flicker [on/off] [bar]` |on: glow/flare opacity follows chunk flicker; off restores steady glow opacity. |
+| `ghost_period <seconds> [bar]` |.1 full opacity cycle;0 disables opacity flicker and holds height at full size. Contact stays solid. |
+| `ghost_alpha <0..255> [bar]` | Main100. Limits chunk and glow/flare opacity together. |
+| `ghost_glow [on/off] [bar]` | Toggle middle glow and both edge flares. |
+| `ghost_glow_color <r> <g> <b> [bar]` |24076100; edges use a paler version. |
+| `ghost_glow_alpha <0..255> [bar]` | Main255. |
+| `ghost_flare_alpha <0..255> [bar]` | Main200. |
+| `ghost_glow_height <pixels> [bar]` | Main33; extra reach above/below the9px foot. |
+| `ghost_flare_height <pixels> [bar]` | Main60; extra upward reach. |
+| `ghost_flare_width <pixels> [bar]` | Main33; each edge's width. |
+| `ghost_glow_duration <seconds> [bar]` | Main10; vertical contraction, bounded by the entire ghost lifetime. |
+
+Movement commands remain `ghost_lift_up`, `ghost_lift_right`, `ghost_drift_up`, `ghost_drift_right` (signed pixels,-100..100). Negative up values travel down. Timing commands remain `ghost_contact_duration`, `ghost_lift_duration`, `ghost_hover_duration` (0..10s), and `ghost_fade_duration` (.01..10s). Glow/flare sizes accept0..100px; alpha values are integers.
+
+To reproduce the previous rendering style, combine `ghost_fade_to trail`, `ghost_height_mode off`, and `ghost_glow_flicker off`. All can be compared independently.
+
+## Exposed underbar: proportional size
+
+The glow spans the exposed red interval from current HP edge to delayed trail edge. It is drawn above the red trail and below the live foreground. Both edges stay stationary during shakes, follow new damage/dragging/width changes, and converge as the red trail catches up. Decorations hide when the exposed interval reaches zero, during green healing feedback, or with the bar.
+
+| Command after `//eb` | Default / meaning |
+| --- | --- |
+| `underbar_glow [on/off] [bar]` |on; toggles glow and both flares. |
+| `underbar_size_mode <fixed\|scaled> [bar]` |scaled; fixed restores the previous maximum-size decoration. |
+| `underbar_size_reference <1..100> [bar]` |25: percent of inner gauge width exposed where full size is reached. |
+| `underbar_glow_height <pixels> [bar]` | Main33; maximum extra middle reach above/below the foot. |
+| `underbar_flare_height <pixels> [bar]` | Main45; maximum upward extension. |
+| `underbar_flare_width <pixels> [bar]` | Main30; maximum edge width. |
+| `underbar_glow_min_height <pixels> [bar]` |2; minimum extra middle reach. |
+| `underbar_flare_min_height <pixels> [bar]` |4; minimum upward flare reach. |
+| `underbar_flare_min_width <pixels> [bar]` |1; minimum width, subject to available space. |
+| `underbar_height_curve <0.1..4> [bar]` |.5; below1 keeps taller wisps as width shrinks;1 is linear. |
+| `underbar_width_curve <0.1..4> [bar]` |1; width scales linearly. |
+| `underbar_glow_alpha <0..255> [bar]` | Main50; middle opacity, limited by trail opacity. |
+| `underbar_flare_alpha <0..255> [bar]` | Main78; edge opacity, limited by trail opacity. |
+| `trail_alpha <0..255> [bar]` | Main255; baseline trail opacity. |
+| `trail_color <r> <g> <b> [bar]` |1675796; preserves the separately saved alpha. |
+
+Minimum sizes are capped at their configured maxima. Flare width is also capped at half the actual exposed interval to avoid excessively overlapping edges. At zero width everything hides rather than leaving a minimum-size orphan. Alpha and red pulse behavior remain independent of size. Reference size uses a fraction of bar width; heights remain UI pixels for comparison on different client resolutions.
+
+## Shake and timing
+
+The supplied main preset chooses `shake_style classic` and `super_settle both`. Main saved impact-only `shake_hold 10` and `shake_super_px 1` are retained in the new defaults but do not affect classic mode. Other frames use impact mode. Switch with `//eb shake_style impact` to test the decreasing impulse sequence.
+
+Impact controls: `shake_small_px`, `shake_large_px`, `shake_super_px` (0..100px); `shake_hold` (0..10s), `shake_step` (.001..10s), `shake_rebound` (0..2), `shake_decay` (0..1), `shake_horizontal` (-2..2). `super_settle off/small/both` controls the weaker aftermath. All shakes use held integer jumps; text and red trail remain still.
+
+Shared animation commands: `animation_duration`, `trail_delay`, `trail_duration`, `heal_duration`, `text_duration` (seconds0..10); switches `damage_trail`, `healing_effect`, `text_effect`, `hit_shake`, `low_hp_pulse`, `ghost_hit`. Damage restarts the trail hold from its current edge. Zero HP collapses the trail in.15s; main briefly retains0%, while dead aggro entries disappear immediately.
+
+## Position, grid reminder and appearance
+
+`//eb setup` shows guides and permits individual group dragging. `//eb setup all` drags the full arrangement together; `setup st` restricts dragging to subtarget. `edit` and `move` are aliases. Setup feedback and `//eb help layout` remind you about the grid.
+
+**Hold either Ctrl key while dragging to snap the dragged group's anchor to a10px grid.** Release Ctrl for free movement; release the mouse to save positions. In setup-all mode the arrangement keeps its relative offsets; it does not snap every element separately. At a client boundary, bounds recovery can take priority over the grid.
+
+Other layout commands: `pos <x> <y> [bar]`, `resetpos [bar]`, `lock/unlock [bar]` (default all), `bounds [on/off] [bar]`, `stack [up/down]` (bare toggles), `spacing <pixels>` (aggro), `count <1..32> a`.
+
+Appearance commands: `width <pixels>`, `color <r> <g> <b>`, `background_alpha <0..255>`, `font "name"`, `fontsize <size>`, `bold`, `italic`, `show`, `hide`, `skin ffxi/classic`, `targetof`, `targeticon`, `action`, `distance`, `debuffs` with the usual optional bar/on-off forms. `ft [name/id/clear]` pins focus. Animation overlays require the native ffxi renderer; status-effect correctness review remains deferred.
+
+## Verification and design notes
+
+Run all five `tests/*_spec.lua` files under Lua5.1 from the repository root. Suites cover motion, rendering geometry, commands, dynamic curves/tint, and the real entry point with mocked client/rendering dependencies. They do not establish live Windower texture filtering, frame cadence or visual feel.
+
+`WORKFLOW.md` was read directly from GitHub and compared with NPCMirror's canonical copy: identical blob `bc17a173c779a7b921aed1d4bf8c539368aa3730`. Shared formatting uses fragment colors140/167/200/207/0 via Windower chat; help is not echoed to the console. See `docs/ANIMATION.md` for references and `docs/DESIGN-NOTES.md` for proposed future refinements, kept separate from delivered behavior.
 
 ## Cumulative changelog
+
+- **2026-10-17 / Batch12:** Latest supplied preset as new defaults; opt-in animation preset adoption; adjustable foreground flash RGB/alpha; white/trail ghost fade; phase-linked ghost height/opacity; proportional underbar size; formatted help/topics; idempotent restart/unload cleanup and Ctrl-grid reminders.
 
 - **2026-10-17 / Batch 11 hotfix:** Fixed HP preview without an explicit bar argument, added preview confirmation, moved the underbar glow above its trail and bounded it to the exposed damage interval. Brighter red glow/flare tints improve separation from the red fill; all saved tuning retained.
 - **2026-10-17 / Batch 10:** Optional small underbar glow and endpoint flares with independent size/alpha controls; red-only pulse through critical HP; constant-opacity normal/white critical foreground; chosen-HP preview. Ghost threshold and saved tuning preserved.
