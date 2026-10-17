@@ -4,6 +4,7 @@ local images = require('images')
 local health_motion = require('healthMotion')
 local animation_settings=require('animationSettings')
 local ghost_motion=require('ghostMotion')
+local underbar_motion=require('underbarMotion')
 local gauge = {}
 local ghosts = {}
 local methods = {}
@@ -52,6 +53,7 @@ function gauge.new(width, color, options)
         -- by an opaque red trail created after it.
         if self.ghost_options.underbar_glow then
             self.trail_glow={image('ghost_glow',tint),image('ghost_flare',tint),image('ghost_flare',tint)}
+            self.trail_pose={}
         end
     end
     self.fill = {
@@ -59,9 +61,11 @@ function gauge.new(width, color, options)
         image('fill_right', color),
     }
     if self.motion and options.effects.low_hp_pulse then
-        -- Native fill is cyan-tinted: a neutral copy gives the critical state
-        -- real white while retaining the normal fill's original resource tint.
-        local white={alpha=color.alpha,red=255,green=255,blue=255}
+        -- Neutral silhouettes give the alternate state its configured RGB/alpha
+        -- without the native texture's cyan cast; normal fill keeps its tint.
+        local flash=self.ghost_options.foreground_flash_color
+        local white={alpha=math.floor((color.alpha or 255)*self.ghost_options.foreground_flash_alpha/255+.5),
+            red=flash.red,green=flash.green,blue=flash.blue}
         self.critical_fill={image('ghost_fill_left',white),image('ghost_fill_mid',white),image('ghost_fill_right',white)}
     end
     self:move(0, 0)
@@ -189,6 +193,7 @@ function methods:layout_trail_glow()
     local x,y=self.x+6+span*self.value,self.y+1
     local width=span*math.max(0,self.trail_value-self.value)
     self.trail_glow_width=width
+    local size=underbar_motion.sample(o,width,span,self.trail_pose)
     local tint=self.active_trail_color or self.trail_color
     -- Brighter red separates the halo from its opaque red foot, without adding
     -- a white pulse to the underbar at critical HP.
@@ -196,17 +201,17 @@ function methods:layout_trail_glow()
     local flare_tint=health_motion.mix(tint,{red=255,green=110,blue=145},.65)
     local alpha=self.active_trail_alpha or self.trail_color.alpha
     local middle=self.trail_glow[1]
-    middle:pos(x,y-o.underbar_glow_height)
-    middle:size(width,9+2*o.underbar_glow_height)
+    middle:pos(x,y-size.glow_height)
+    middle:size(width,9+2*size.glow_height)
     middle:color(glow_tint.red,glow_tint.green,glow_tint.blue)
     middle:alpha(math.floor(alpha*o.underbar_glow_alpha/255+.5))
     -- Cap width on nearly empty trails so the two flares do not grow wider
     -- than the bar they decorate. Their centres follow the actual endpoints.
-    local flare_width=math.min(o.underbar_flare_width,width/2)
+    local flare_width=size.flare_width
     for i=2,3 do
         local p=self.trail_glow[i]
-        p:pos((i==2 and x or x+width)-flare_width/2,y-o.underbar_flare_height)
-        p:size(flare_width,9+o.underbar_flare_height)
+        p:pos((i==2 and x or x+width)-flare_width/2,y-size.flare_height)
+        p:size(flare_width,9+size.flare_height)
         p:color(flare_tint.red,flare_tint.green,flare_tint.blue)
         p:alpha(math.floor(alpha*o.underbar_flare_alpha/255+.5))
     end
@@ -288,18 +293,20 @@ function gauge.update_ghosts()
             destroy_ghost(g)
             table.remove(ghosts,i)
         else
-            local tint=health_motion.mix({red=255,green=255,blue=255},g.tint,pose.fade)
+            local tint=health_motion.mix({red=255,green=255,blue=255},g.tint,
+                o.ghost_fade_to=='trail' and pose.fade or 0)
             local cap=math.min(3,g.width/2)
             local y=g.y+pose.y
             local x=g.x+pose.x
             if g.glow then
                 local strength=pose.glow*(1-pose.fade)
-                local height=9+2*o.ghost_glow_height*pose.glow
+                if o.ghost_glow_flicker then strength=strength*pose.flicker end
+                local height=9+2*o.ghost_glow_height*pose.glow*pose.height_scale
                 g.glow[1]:pos(x,y-(height-9)/2)
                 g.glow[1]:size(g.width,height)
                 g.glow[1]:alpha(math.floor(g.alpha*o.ghost_glow_alpha/255*strength+.5))
                 g.glow[1]:visible(strength>0 and o.ghost_glow_alpha>0)
-                local flare_height=9+o.ghost_flare_height*pose.glow
+                local flare_height=9+o.ghost_flare_height*pose.glow*pose.height_scale
                 local bright=health_motion.mix(o.ghost_glow_color,{red=255,green=255,blue=255},.5)
                 for j=2,3 do
                     local p=g.glow[j]

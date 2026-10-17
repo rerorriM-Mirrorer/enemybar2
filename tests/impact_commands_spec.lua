@@ -14,7 +14,12 @@ function string:split(delimiter)
     return result
 end
 local logs={}
-windower={add_to_chat=function(_,s) logs[#logs+1]=s end}
+local channels={}
+windower={add_to_chat=function(channel,s) logs[#logs+1]=s;channels[#channels+1]=channel end}
+package.preload.chat=function()
+    function string:color(id) return '['..id..']'..self end
+    return {}
+end
 _addon={version='test'}
 settings=require('defaultPreset')()
 for _,frame in pairs(settings) do frame.pos={x=460,y=688} end
@@ -27,12 +32,19 @@ local last=assert(source:find("windower.register_event('prerender'",first,true))
 local prelude=[[local frame_names={'target','subtarget','focustarget','aggro'}
 local animation_settings=require('animationSettings')
 local animation_preview={start=function(...) preview_args={...} end,clear=function() end}
+local help_text=require('helpText')
+local animation_preset=require('animationPreset')
+local lifecycle=require('lifecycle').new(function() lifecycle_cleaned=(lifecycle_cleaned or 0)+1 end,
+    function(command) lifecycle_commands=lifecycle_commands or {};lifecycle_commands[#lifecycle_commands+1]=command end,
+    function(message) windower.add_to_chat(207,message) end)
 local state={setup=false,in_cs=false}
 ]]
 assert(loadstring(prelude..source:sub(first,last-1)))()
-assert(settings.target_bar.shake_style=='impact')
+assert(settings.target_bar.shake_style=='classic')
 assert(settings.target_bar.ghost_glow)
-assert(settings.target_bar.ghost_lift_up==1 and settings.target_bar.ghost_fade_duration==2.5)
+assert(settings.target_bar.ghost_lift_up==0 and settings.target_bar.ghost_fade_duration==1)
+assert(settings.target_bar.underbar_flare_height==45 and settings.target_bar.underbar_glow_alpha==50)
+assert(settings.target_bar.foreground_period==.1 and settings.target_bar.foreground_flash_alpha==0)
 assert(settings.target_bar.text_duration==1.2 and settings.aggro_bar.width==100)
 assert(settings.target_bar.ghost_glow_color~=settings.aggro_bar.ghost_glow_color)
 handle_command('shake_super_px','12')
@@ -94,7 +106,35 @@ preview_args=nil
 handle_command('preview','hp','0');handle_command('preview','hp','5.5')
 handle_command('preview','hp','101');handle_command('preview','hp','nan')
 assert(preview_args==nil)
+handle_command('foreground_flash_color','20','40','60','all')
+assert(settings.target_bar.foreground_flash_color.green==40)
+assert(settings.target_bar.foreground_flash_color~=settings.aggro_bar.foreground_flash_color)
+handle_command('foreground_flash_alpha','80','t')
+handle_command('ghost_fade_to','trail','all')
+handle_command('ghost_height_mode','smooth')
+handle_command('underbar_size_mode','fixed')
+handle_command('ghost_glow_flicker','off')
+assert(settings.target_bar.foreground_flash_alpha==80 and settings.target_bar.ghost_fade_to=='trail')
+assert(settings.target_bar.ghost_height_mode=='smooth' and settings.target_bar.underbar_size_mode=='fixed')
+assert(not settings.target_bar.ghost_glow_flicker)
+old=saved
+handle_command('foreground_flash_alpha','1.5');handle_command('foreground_flash_color','256','0','0')
+handle_command('ghost_fade_to','red');handle_command('underbar_size_reference','0')
+assert(saved==old)
+handle_command(nil);assert(channels[#channels]==0)
+handle_command('help','flash')
+assert(logs[#logs]:find('[200]//eb ',1,true) and channels[#channels]==0)
+handle_command('unknown-command');assert(channels[#channels]==0)
+handle_command('setup','on');assert(logs[#logs]:find('Ctrl',1,true))
+handle_command('setup','off')
+settings.target_bar.width=777
+handle_command('defaults','animations','t')
+assert(settings.target_bar.width==777 and settings.target_bar.foreground_flash_alpha==0)
+assert(settings.target_bar.ghost_fade_to=='white' and settings.target_bar.underbar_size_mode=='scaled')
+assert(settings.target_bar.ghost_height_mode=='snap' and settings.target_bar.ghost_glow_flicker)
 assert(saved==recreated and saved>0)
 assert(settings.target_bar.pos.x==460 and settings.target_bar.pos.y==688)
-assert(settings.target_bar.text_duration==1.2 and settings.target_bar.ghost_fade_duration==2.5)
+assert(settings.target_bar.text_duration==1.2 and settings.target_bar.ghost_fade_duration==1)
+handle_command('restart');handle_command('restart');handle_command('unload')
+assert(lifecycle_cleaned==1 and #lifecycle_commands==1 and lifecycle_commands[1]=='lua reload enemybar2')
 print('impact_commands_spec: defaults, forms, validation, reports and preserved tuning passed')

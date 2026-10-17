@@ -10,7 +10,13 @@ settings.defaults={foreground_period=.25,underbar_period=.1,ghost_lift_up=6,
     ghost_glow_color={red=240,green=76,blue=100},ghost_glow_height=6,
     ghost_glow_duration=.4,ghost_flare_alpha=230,ghost_flare_height=18,ghost_flare_width=3,
     underbar_glow=true,underbar_glow_alpha=80,underbar_glow_height=3,
-    underbar_flare_alpha=140,underbar_flare_height=8,underbar_flare_width=3}
+    underbar_flare_alpha=140,underbar_flare_height=8,underbar_flare_width=3,
+    foreground_flash_color={red=255,green=255,blue=255},foreground_flash_alpha=255,
+    ghost_fade_to='white',ghost_height_mode='snap',ghost_height_min=.35,
+    ghost_height_strength=1,ghost_glow_flicker=true,
+    underbar_size_mode='scaled',underbar_size_reference=25,
+    underbar_glow_min_height=2,underbar_flare_min_height=4,underbar_flare_min_width=1,
+    underbar_height_curve=.5,underbar_width_curve=1}
 settings.ranges={foreground_period={.02,10},underbar_period={.02,10},
     ghost_lift_up={-100,100},ghost_lift_right={-100,100},ghost_drift_up={-100,100},
     ghost_drift_right={-100,100},ghost_lift_duration={0,10},ghost_hover_duration={0,10},
@@ -21,7 +27,13 @@ settings.ranges={foreground_period={.02,10},underbar_period={.02,10},
     ghost_glow_height={0,100},ghost_glow_duration={0,10},ghost_flare_alpha={0,255},
     ghost_flare_height={0,100},ghost_flare_width={0,100},
     underbar_glow_alpha={0,255},underbar_glow_height={0,100},
-    underbar_flare_alpha={0,255},underbar_flare_height={0,100},underbar_flare_width={0,100}}
+    underbar_flare_alpha={0,255},underbar_flare_height={0,100},underbar_flare_width={0,100},
+    foreground_flash_alpha={0,255},ghost_height_min={0,1},ghost_height_strength={0,1},
+    underbar_size_reference={1,100},underbar_glow_min_height={0,100},
+    underbar_flare_min_height={0,100},underbar_flare_min_width={0,100},
+    underbar_height_curve={.1,4},underbar_width_curve={.1,4}}
+settings.enums={ghost_fade_to={'white','trail'},ghost_height_mode={'off','snap','smooth'},
+    underbar_size_mode={'fixed','scaled'}}
 function settings.valid(name,raw)
     local v=tonumber(raw);local r=settings.ranges[name]
     return v and r and v>=r[1] and v<=r[2] and

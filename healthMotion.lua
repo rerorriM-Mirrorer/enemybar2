@@ -62,8 +62,8 @@ function methods:sample()
             out.pulse=(1-math.cos(2*math.pi*now/self.underbar_period))/2
             out.critical=self.value<=.10
             if out.critical then
-                -- Critical HP changes color, not visibility. Keep the independent
-                -- foreground clock; the underbar retains its red-only cycle.
+                -- The alternate critical phase uses configured RGB/alpha in the
+                -- renderer. Its clock remains independent of the red underbar.
                 out.white=(now % self.foreground_period)<self.foreground_period/2 and 0 or 1
             end
         end

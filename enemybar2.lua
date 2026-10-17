@@ -25,7 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 _addon.name = 'enemybar2'
 _addon.author = 'mmckee,akaden,Awake'
-_addon.version = '1.1.1-a.20261017.11'
+_addon.version = '1.1.1-a.20261017.12'
 _addon.language = 'English'
 _addon.commands = {'enemybar','eb'}
 
@@ -43,6 +43,8 @@ local last_ui_width, last_ui_height
 local animation_settings=require("animationSettings")
 local animation_preview=require("animationPreview")
 local gauge_effects=require("ffxiGauge")
+local help_text=require('helpText')
+local animation_preset=require('animationPreset')
 local function save_positions()
     for i, name in ipairs(frame_names) do
         local b=bar_sets[i][1]
@@ -74,8 +76,9 @@ local state = {}
 state.setup = false
 state.focustarget = nil
 state.in_cs = false
+local snap_keys={}
 
-function initialize_bars()
+local function destroy_live_bars()
     if target_bar then 
         bars.destroy(target_bar) 
         target_bar = nil
@@ -93,7 +96,19 @@ function initialize_bars()
             bars.destroy(b)
         end
     end
+    aggro_bars,bar_sets=nil,nil
+end
 
+local lifecycle=require('lifecycle').new(function()
+    if dragged and bar_sets then save_positions() end
+    dragged,drag_snap_key_down=nil,false
+    snap_keys={}
+    state.setup=false
+    animation_preview.clear();gauge_effects.clear_ghosts();destroy_live_bars()
+end,windower.send_command,function(message) windower.add_to_chat(207,message) end)
+
+function initialize_bars()
+    destroy_live_bars()
     target_bar = bars.new(settings.target_bar)
     subtarget_bar = bars.new(settings.subtarget_bar)
     focustarget_bar = bars.new(settings.focustarget_bar)
@@ -419,9 +434,21 @@ local function valid_dimension(setting,raw)
 end
 
 function handle_command(c, ...)
-    if not c then return end
+    if not c then c='help' end
     local args = L{...}
     c = c:lower()
+    if c=='restart' or c=='unload' then lifecycle:request(c);return end
+    if lifecycle.pending then return end
+    if c=='defaults' then
+        local frame=normalize_bar_name(args[2] or 't')
+        if args[1]~='animations' or not frame then
+            windower.add_to_chat(123,'EnemyBar: //eb defaults animations [t/st/ft/a/all]');return
+        end
+        animation_preset.apply(settings,frame)
+        settings:save();initialize_bars()
+        windower.add_to_chat(207,'EnemyBar: animation defaults applied to '..frame..'; layout retained')
+        return
+    end
     if c=='preview' then
         if args[1]=='off' then animation_preview.clear();return end
         local hpp=args[1]=='hp' and tonumber(args[2]) or nil
@@ -451,7 +478,7 @@ function handle_command(c, ...)
         return handle_command('set','show',args[1] or 't','on')
     end
     local toggles=S{'show_target','show_target_icon','show_action','show_dist','show_debuff',
-        'bold','italic','bounds','damage_trail','healing_effect','text_effect','hit_shake','low_hp_pulse','ghost_hit','ghost_glow','underbar_glow'}
+        'bold','italic','bounds','damage_trail','healing_effect','text_effect','hit_shake','low_hp_pulse','ghost_hit','ghost_glow','underbar_glow','ghost_glow_flicker'}
     if toggles:contains(c) and (#args==0 or (#args==1 and normalize_bar_name(args[1]))) then
         local frame=normalize_bar_name(args[1] or 't')
         local value=not settings[(frame=='all' and 'target' or frame)..'_bar'][c]
@@ -499,6 +526,7 @@ function handle_command(c, ...)
         heal_duration=1,text_duration=1,pulse_period=1,ghost_hit=1}
     for name in pairs(animation_settings.defaults) do arity[name]=1 end
     arity.ghost_glow_color=3
+    arity.foreground_flash_color=3
     if arity[c] then
         local n=arity[c]
         if #args==0 or (#args==1 and normalize_bar_name(args[1])) then
@@ -540,6 +568,12 @@ function handle_command(c, ...)
             windower.add_to_chat(207,string.format('  seconds: fill %g, trail hold %g, trail slide %g, healing %g, text %g',
                 f.animation_duration,f.trail_delay,f.trail_duration,f.heal_duration,f.text_duration))
             windower.add_to_chat(207,string.format('  split periods: foreground %g, underbar %g; settle %s',f.foreground_period,f.underbar_period,f.super_settle))
+            windower.add_to_chat(207,string.format('  foreground flash RGB %g/%g/%g alpha %g; ghost fades to %s; height %s, min %g, strength %g, glow flicker %s',
+                f.foreground_flash_color.red,f.foreground_flash_color.green,f.foreground_flash_color.blue,f.foreground_flash_alpha,
+                f.ghost_fade_to,f.ghost_height_mode,f.ghost_height_min,f.ghost_height_strength,tostring(f.ghost_glow_flicker)))
+            windower.add_to_chat(207,string.format('  underbar size %s: full at %g%% exposed; minima glow/flare/width %g/%g/%gpx; curves height/width %g/%g',
+                f.underbar_size_mode,f.underbar_size_reference,f.underbar_glow_min_height,f.underbar_flare_min_height,
+                f.underbar_flare_min_width,f.underbar_height_curve,f.underbar_width_curve))
             windower.add_to_chat(207,string.format('  underbar glow %s: alpha %g, height %gpx; flare alpha %g, height %gpx, width %gpx',
                 tostring(f.underbar_glow),f.underbar_glow_alpha,f.underbar_glow_height,
                 f.underbar_flare_alpha,f.underbar_flare_height,f.underbar_flare_width))
@@ -589,7 +623,7 @@ function handle_command(c, ...)
             else
                 windower.add_to_chat(123, 'EnemyBar: not enough arguments for "'..setting..'"')
             end
-        elseif setting == 'color' or setting == 'trail_color' or setting=='ghost_glow_color' then
+        elseif setting == 'color' or setting == 'trail_color' or setting=='ghost_glow_color' or setting=='foreground_flash_color' then
             if args[3] and args[4] and args[5] then
                 if not valid_rgb(args[3],args[4],args[5]) then
                     windower.add_to_chat(123, 'EnemyBar: '..setting..' requires three integers from 0 to 255')
@@ -612,6 +646,9 @@ function handle_command(c, ...)
                 local range=animation_settings.ranges[setting]
                 windower.add_to_chat(123,'EnemyBar: '..setting..' must be '..range[1]..'..'..range[2])
             end
+        elseif animation_settings.enums[setting] then
+            if S(animation_settings.enums[setting]):contains(args[3]) then set_setting(bar,setting,args[3])
+            else windower.add_to_chat(123,'EnemyBar: '..setting..' '..table.concat(animation_settings.enums[setting],'/')) end
         elseif setting=='super_settle' then
             if S{'off','small','both'}:contains(args[3]) then set_setting(bar,setting,args[3])
             else windower.add_to_chat(123,'EnemyBar: super_settle off/small/both') end
@@ -645,7 +682,7 @@ function handle_command(c, ...)
             else
                 windower.add_to_chat(123, 'EnemyBar: not enough arguments for "'..setting..'"')
             end
-        elseif S{'show','show_target_icon','show_target','show_debuff','show_action','show_dist','bold','italic','bounds','locked','damage_trail','healing_effect','text_effect','hit_shake','low_hp_pulse','ghost_hit','ghost_glow','underbar_glow'}:contains(setting) then
+        elseif S{'show','show_target_icon','show_target','show_debuff','show_action','show_dist','bold','italic','bounds','locked','damage_trail','healing_effect','text_effect','hit_shake','low_hp_pulse','ghost_hit','ghost_glow','underbar_glow','ghost_glow_flicker'}:contains(setting) then
             if args[3] then
                 local b = normalize_boolean(args[3])
                 if b == nil then
@@ -708,34 +745,12 @@ function handle_command(c, ...)
         end
         dragged=nil
         windower.add_to_chat(207, 'EnemyBar: setup mode is now "'..(state.setup and 'on' or 'off')..'"')
+        if state.setup then windower.add_to_chat(207,'EnemyBar: hold Ctrl while dragging for a 10px grid; release mouse to save') end
     elseif S{'help','h','man','manual'}:contains(c) then
-        local helptext = [[EnemyBar commands - [bar]: t/st/ft/a/all; default t.
-Animation: damage_trail/healing_effect/text_effect/hit_shake/low_hp_pulse/ghost_hit [on/off] [bar]. Omit state to toggle.
-Timing: animation_duration/trail_delay/trail_duration/heal_duration/text_duration/pulse_period <seconds> [bar]. Omit value to report.
-Color: color/trail_color <r> <g> <b> [bar]; background_alpha/trail_alpha <0..255> [bar].
-Appearance: width <pixels> [bar]; font "name" [bar]; fontsize <size> [bar]; bold/italic [on/off] [bar]; skin ffxi/classic [bar].
-Visibility: show/hide [bar]; targetof/targeticon/action/distance/debuffs [on/off] [bar].
-Position: pos <x> <y> [bar]; resetpos [bar]; lock/unlock [bar] (default all); bounds [on/off] [bar].
-Edit: setup/edit/move [bar] [on/off]. Basic: all visible, individual dragging. all: arrangement dragging.
-Aggro: stack [up/down] (bare toggles); spacing <pixels>; count <1..32> a.
-Ghost: ghost_lift_up/right, ghost_drift_up/right <pixels> [bar]; ghost_lift_duration/ghost_hover_duration/ghost_fade_duration <seconds> [bar].
-Ghost opacity: ghost_alpha <0..255> [bar]; ghost_period <seconds> [bar] (0 disables flicker).
-Pulse: foreground_period/underbar_period <seconds> [bar]; pulse_period sets both.
-Underbar glow: underbar_glow [on/off] [bar]; underbar_glow_alpha/underbar_flare_alpha <0..255> [bar].
-Underbar size: underbar_glow_height/underbar_flare_height/underbar_flare_width <pixels> [bar].
-HP preview: preview hp <1..100> [bar] shows that HP for 8 seconds. Critical foreground flashes normal/white; underbar stays red.
-Super settling: super_settle off/small/both [bar]. Preview: preview ghost [bar]; preview off.
-Shake: shake_style impact/classic [bar]; shake_small_px/shake_large_px/shake_super_px <pixels> [bar].
-Rebounds: shake_rebound/shake_decay <ratio> [bar]; shake_hold/shake_step <seconds> [bar]; shake_horizontal <ratio> [bar].
-Ghost glow: ghost_glow [on/off] [bar]; ghost_contact_duration/ghost_glow_duration <seconds> [bar].
-Glow tuning: ghost_glow_alpha/ghost_flare_alpha <0..255> [bar]; ghost_glow_height/ghost_flare_height/ghost_flare_width <pixels> [bar].
-Glow color: ghost_glow_color <r> <g> <b> [bar]. All tuning commands report their value when omitted.
-Focus: ft [name/id/clear]. Bare ft pins the current target.
-Legacy: set/s <setting> <bar> <value(s)> remains available.
-status reports version, layout, switches and animation timings. help/h/manual/man shows this list.]]
-        for _, line in ipairs(helptext:split('\n')) do
-                windower.add_to_chat(207, line)
-        end
+        help_text.show(args[1])
+    else
+        windower.add_to_chat(123,'EnemyBar: unknown command '..c)
+        help_text.show()
     end
 end
 
@@ -789,6 +804,8 @@ function set_setting(bar, setting, v)
                 -- Changing RGB preserves this frame's independently saved alpha.
                 local existing=settings[name..'_bar'][setting]
                 existing.red,existing.green,existing.blue=v.red,v.green,v.blue
+            elseif setting=='ghost_glow_color' or setting=='foreground_flash_color' then
+                settings[name..'_bar'][setting]={red=v.red,green=v.green,blue=v.blue}
             else
                 settings[name..'_bar'][setting]=v
                 if setting=='pulse_period' then
@@ -804,6 +821,7 @@ function set_setting(bar, setting, v)
 end
 
 windower.register_event('prerender', function()
+    if lifecycle.pending then return end
     gauge_effects.update_ghosts()
     animation_preview.update()
     local ui=windower.get_windower_settings()
@@ -828,7 +846,7 @@ windower.register_event('incoming chunk', function(id, data)
     handle_party_packets(id, data)
 end)
 windower.register_event('zone change', function() reset_tracked_actions();animation_preview.clear();gauge_effects.clear_ghosts() end)
-windower.register_event('unload', function() animation_preview.clear();gauge_effects.clear_ghosts() end)
+windower.register_event('unload', function() lifecycle:dispose() end)
 windower.register_event('addon command', handle_command)
 windower.register_event('logout', function(...)
     animation_preview.clear();gauge_effects.clear_ghosts()
@@ -913,8 +931,9 @@ windower.register_event('mouse', function(type, x, y, delta, blocked)
     return false
 end)
 windower.register_event('keyboard', function(dik, down) -- lol diks
-    if dik == 29 then -- if ctrl
-        drag_snap_key_down = down
+    if dik == 29 or dik == 157 then -- left/right Ctrl
+        snap_keys[dik]=down
+        drag_snap_key_down=snap_keys[29] or snap_keys[157] or false
     end
 end)
 
