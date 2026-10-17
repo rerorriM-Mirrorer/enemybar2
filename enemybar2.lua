@@ -25,7 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 _addon.name = 'enemybar2'
 _addon.author = 'mmckee,akaden,Awake'
-_addon.version = '1.1.1-a.20261017.10'
+_addon.version = '1.1.1-a.20261017.11'
 _addon.language = 'English'
 _addon.commands = {'enemybar','eb'}
 
@@ -425,7 +425,11 @@ function handle_command(c, ...)
     if c=='preview' then
         if args[1]=='off' then animation_preview.clear();return end
         local hpp=args[1]=='hp' and tonumber(args[2]) or nil
-        local name=normalize_bar_name((args[1]=='hp' and args[3] or args[2]) or 't')
+        -- Lua's a-and-b-or-c idiom falls through when b is nil: omitted HP
+        -- preview frame must default to target, not reuse the HP argument.
+        local frame_arg
+        if args[1]=='hp' then frame_arg=args[3] else frame_arg=args[2] end
+        local name=normalize_bar_name(frame_arg or 't')
         if (args[1]~='ghost' and args[1]~='hp') or not name or name=='all' or
             (args[1]=='hp' and (not hpp or hpp<1 or hpp>100 or hpp~=math.floor(hpp))) then
             windower.add_to_chat(123,'EnemyBar: preview ghost [bar], preview hp <1..100> [bar], or preview off');return
@@ -436,6 +440,7 @@ function handle_command(c, ...)
         local index=({target=1,subtarget=2,focustarget=3,aggro=4})[name]
         local b=bar_sets[index][1]
         animation_preview.start(frame,b.x,b.y,hpp)
+        if hpp then windower.add_to_chat(207,'EnemyBar: '..name..' HP preview '..hpp..'% (8 seconds)') end
         return
     end
     local aliases={targetof='show_target',targeticon='show_target_icon',action='show_action',

@@ -28,21 +28,26 @@ g:move(100,100);g:set_value(1,true);g:show()
 assert(not g.trail_glow[1]._visible)
 g:set_value(.5,false)
 local width=g.width-12
-near(g.trail_glow[1]._w,width)
-near(g.trail_glow[2].x+g.trail_glow[2]._w/2,106)
+near(g.trail_glow[1]._w,width*.5)
+near(g.trail_glow[2].x+g.trail_glow[2]._w/2,106+width*.5)
 near(g.trail_glow[3].x+g.trail_glow[3]._w/2,106+width)
 assert(g.trail_glow[1]._visible and g.trail_glow[2]._visible)
+local function position(p) for i,part in ipairs(all) do if p==part then return i end end end
+assert(position(g.trail[1])<position(g.trail_glow[1]))
+assert(position(g.trail_glow[1])<position(g.fill[1]))
+assert(g.trail_glow[1].rgb[1]>g.active_trail_color.red)
 near(g.trail_glow[2].y,101-o.underbar_flare_height)
 assert(g.trail_glow[1].a==math.floor(228*80/255+.5))
 -- The halo/flare follows shrinking trail width and drag position, never shake.
 now=2.25;g:show()
-near(g.trail_glow[1]._w,width*.75)
+near(g.trail_glow[1]._w,width*.25)
 near(g.trail_glow[3].x+g.trail_glow[3]._w/2,106+width*.75)
 g:move(300,200)
-near(g.trail_glow[2].x+g.trail_glow[2]._w/2,306)
+near(g.trail_glow[2].x+g.trail_glow[2]._w/2,306+width*.5)
 near(g.trail_glow[2].y,201-o.underbar_flare_height)
 -- Matching pulse phase at 50% and 5% gives the same red, with increasing alpha.
 now=3;g:set_value(.5,true);g:show()
+for _,p in ipairs(g.trail_glow) do assert(not p._visible) end
 local first=g.active_trail_color
 g:set_value(.05,true);g:show()
 assert(first.red==g.active_trail_color.red and first.green==g.active_trail_color.green)

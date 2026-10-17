@@ -1,5 +1,25 @@
 # TESTING.md
 
+## Current tests — Batch 11 HP-preview and exposed-underbar hotfix (2026-10-17)
+
+- **Repository / branch:** `rerorriM-Mirrorer/enemybar2`, `underbar-glow-2026-10-17`; baseline published snapshot `ff65121`, identical tree to local Batch10 packaged source `8a035e3`. Current branch AGENTS/WORKFLOW/TESTING were read from GitHub before this fix. Original local history is retained on `underbar-glow-local-history-2026-10-17`.
+- **User observation:** unable to see underbar glow/flares; `preview hp <1..100>` did not work. User clarified expected location as the red interval exposed immediately after the live HP fill shortens.
+- **Confirmed parser defect:** `(is_hp and args[3] or args[2])` fell through to the HP number when the optional frame was absent. `preview hp 5 t` passed old tests, while bare-frame `preview hp 5` failed. Fixed with explicit frame selection; new regression tests cover both forms,50%, subtarget and invalid values.
+- **Renderer correction:** prior decoration covered the entire underbar from its fixed origin and was created below the opaque trail. Now it covers only current HP edge to animated trail edge, draws above the trail/below foreground, and uses a brighter red tint. The glow disappears when the exposed interval reaches zero; it never gains a white critical pulse.
+- **Version / install:** `1.1.1-a.20261017.11`; complete overlay ZIP with no data directory. Replace matching addon files and reload. All saved ghost, layout and underbar settings remain in force.
+- **Offline verification:** all16 Lua sources parse under Lua5.1; all three regression suites pass. Underbar tests assert exposed interval geometry, endpoint positions, actual primitive creation order, brighter tint, shrinking and cleanup. Shipped textures were composited using actual mocked renderer geometry for visual inspection; this is not a live Windower rendering test. Live feel remains pending.
+
+### Live retest
+
+1. `//lua reload enemybar2`, then `//eb status`: version .20261017.11.
+2. `//eb preview hp 50` without a final `t`: expect a chat confirmation and visible HP demonstration. Glow/flares should decorate the exposed red section during the saved trail hold/slide, then disappear once it catches up. Repeat `//eb preview hp 5` to compare the critical normal/white foreground while the underbar stays red.
+3. For an obvious size/brightness comparison, optional main-bar values: `//eb underbar_glow_alpha 160`, `//eb underbar_glow_height 6`, `//eb underbar_flare_alpha 220`, `//eb underbar_flare_height 16`, `//eb underbar_flare_width 6`. Reissue `//eb preview hp 50`. Existing subtle defaults80/3/140/8/3 and saved experiments are not overridden by this update.
+4. Check `//eb preview hp 5 t`, `//eb preview hp 10 st`, `//eb preview ghost`, preview replacement/off, setup exit, target changes and healing. Confirm >=75-point ghost hits remain unchanged and the red underbar/glow remain stationary during shakes.
+
+### Publication correction / retained history
+
+The Batch10 statement below that its commits remained local records the initial blocked attempt. After explicit user approval, snapshot `ff65121` was published to this branch through connected GitHub access; its Git tree matches the ZIP source exactly. Direct shell pushing lacks HTTPS credentials, so later publications use the same authenticated connector. Local commit IDs and original history are retained.
+
 ## Current tests — Batch 10 underbar glow and critical color flash (2026-10-17)
 
 - **Repository / branch:** `rerorriM-Mirrorer/enemybar2`, `underbar-glow-2026-10-17`.
@@ -13,7 +33,7 @@
 
 1. Reload and run `//eb status`: verify version .20261017.10, new underbar settings and your saved layout/ghost tuning. Enter/exit `//eb setup` on each client and confirm the prior placeholder-ID hotfix still holds.
 2. `//eb preview hp 50`, then `//eb preview hp 5`. Each lasts 8 seconds. At <=50% the underbar stays normal/brighter red; at <=10% the foreground alternates normal/true white with no quarter-opacity phase. Compare `//eb preview hp 11` to confirm foreground stops flashing above 10%.
-3. `//eb preview ghost`: compare the existing large ghost with the new smaller underbar glow. The underbar's right flare follows its held edge, then follows its shrinking edge; the left flare stays at the underbar's origin. Neither follows the hit-shake offset. Drag in setup and change width to check both endpoints follow the gauge.
+3. `//eb preview ghost`: compare the existing large ghost with the new smaller underbar glow. The underbar's right flare follows its held edge, then follows its shrinking edge; ~~the left flare stays at the underbar's origin~~. **Correction, Batch11:** the left flare now follows the stationary current-HP edge, bounding only the exposed damage interval. Neither follows the hit-shake offset. Drag in setup and change width to check both endpoints follow the gauge.
 4. Tune one value, then preview again: `//eb underbar_glow_height 3`, `//eb underbar_glow_alpha 80`, `//eb underbar_flare_height 8`, `//eb underbar_flare_width 3`, `//eb underbar_flare_alpha 140`. Values shown are the new defaults. Append `all` for all bars; omit numeric values to report. Size ranges 0..100; alpha must be integer 0..255.
 5. `//eb underbar_glow off`, then `on` to compare. Glow alpha 0 removes only the soft middle; flare alpha or width 0 removes only the flares. Compare `//eb low_hp_pulse off` / `on` separately; it retains its established control over both low-health layers.
 6. Verify healing suppresses the red glow during green healing feedback; target switching, hide, zero HP, setup exit, cutscenes and unload leave no persistent flares. Repeated previews replace the demonstration; detached ghosts still finish. Main retains its brief 0% hold; dead aggro bars disappear immediately.

@@ -46,13 +46,13 @@ function gauge.new(width, color, options)
         local tint = {red=red.red,green=red.green,blue=red.blue,
             alpha=math.floor((color.alpha or 255)*(red.alpha or 128)/255+.5)}
         self.trail_color=tint
-        -- Smaller persistent glow follows the stationary trail geometry. Create
-        -- it below the fill so only its halo extends around the live HP bar.
+        self.trail = {image('fill_left',tint),image('fill_mid',tint),image('fill_right',tint)}
+        -- Draw above the red trail, below the live foreground. The glow's foot
+        -- must stay visible across the exposed lost-HP section, not be covered
+        -- by an opaque red trail created after it.
         if self.ghost_options.underbar_glow then
             self.trail_glow={image('ghost_glow',tint),image('ghost_flare',tint),image('ghost_flare',tint)}
         end
-        -- Created before the foreground so the current HP covers the trail.
-        self.trail = {image('fill_left',tint),image('fill_mid',tint),image('fill_right',tint)}
     end
     self.fill = {
         image('fill_left', color), image('fill_mid', color),
@@ -183,14 +183,22 @@ end
 function methods:layout_trail_glow()
     if not self.trail_glow then return end
     local o=self.ghost_options
-    local x,y=self.x+6,self.y+1
-    local width=(self.width-12)*self.trail_value
+    -- Only the exposed damage interval glows: current HP edge -> trailing edge.
+    -- The right edge slides toward the left as the red trail catches up.
+    local span=self.width-12
+    local x,y=self.x+6+span*self.value,self.y+1
+    local width=span*math.max(0,self.trail_value-self.value)
+    self.trail_glow_width=width
     local tint=self.active_trail_color or self.trail_color
+    -- Brighter red separates the halo from its opaque red foot, without adding
+    -- a white pulse to the underbar at critical HP.
+    local glow_tint=health_motion.mix(tint,{red=255,green=110,blue=145},.4)
+    local flare_tint=health_motion.mix(tint,{red=255,green=110,blue=145},.65)
     local alpha=self.active_trail_alpha or self.trail_color.alpha
     local middle=self.trail_glow[1]
     middle:pos(x,y-o.underbar_glow_height)
     middle:size(width,9+2*o.underbar_glow_height)
-    middle:color(tint.red,tint.green,tint.blue)
+    middle:color(glow_tint.red,glow_tint.green,glow_tint.blue)
     middle:alpha(math.floor(alpha*o.underbar_glow_alpha/255+.5))
     -- Cap width on nearly empty trails so the two flares do not grow wider
     -- than the bar they decorate. Their centres follow the actual endpoints.
@@ -199,7 +207,7 @@ function methods:layout_trail_glow()
         local p=self.trail_glow[i]
         p:pos((i==2 and x or x+width)-flare_width/2,y-o.underbar_flare_height)
         p:size(flare_width,9+o.underbar_flare_height)
-        p:color(tint.red,tint.green,tint.blue)
+        p:color(flare_tint.red,flare_tint.green,flare_tint.blue)
         p:alpha(math.floor(alpha*o.underbar_flare_alpha/255+.5))
     end
 end
@@ -227,7 +235,7 @@ function methods:refresh_visibility()
         local enabled=i==1 and self.ghost_options.underbar_glow_alpha>0 or
             i>1 and self.ghost_options.underbar_flare_alpha>0
         part:visible(self:trail_visible() and not (self.feedback and self.feedback.healing)
-            and part:width()>0 and enabled)
+            and (self.trail_glow_width or 0)>0 and part:width()>0 and enabled)
     end
 end
 

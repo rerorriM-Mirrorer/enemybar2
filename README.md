@@ -1,6 +1,6 @@
 # enemybar2
 
-Native FFXI target, subtarget, focus and aggro health bars for Windower 4. Main/focus are pink, subtarget is TP blue and aggro is pale MP green. The current animation experiment is **Batch 10, 1.1.1-a.20261017.10**. Start with `TESTING.md` for the current checks; the prior packages and observations are recorded below those checks.
+Native FFXI target, subtarget, focus and aggro health bars for Windower 4. Main/focus are pink, subtarget is TP blue and aggro is pale MP green. The current animation experiment is **Batch 11 hotfix, 1.1.1-a.20261017.11**. Start with `TESTING.md` for the current checks; the prior packages and observations are recorded below those checks.
 
 Saved character positions, widths, colors, fonts and animation tuning take precedence over defaults. The package contains no `data` directory. New installs use the supplied Franklet preset with screen-relative positions: main near bottom center, subtarget/focus above it, aggro to the right. The same six native gauge slices are used for every bar.
 
@@ -39,7 +39,7 @@ Damage snaps the native fill to the observed HP. The red trail holds, then slide
 
 ### Underbar glow and flares — Batch 10
 
-Small versions of the ghost glow decorate the red underbar. The soft middle follows its full current width; the flares track its left and right endpoints, including the held damage trail and its shrinking edge. All three use the underbar's current red pulse color and opacity, remain stationary during shakes, and hide with the bar or during green healing feedback. They do not inherit the ghost's motion, flicker or lifetime. Existing ghost tuning and the **75-percentage-point-or-larger** trigger are unchanged.
+Small versions of the ghost glow decorate the exposed red damage interval, between the shortened live HP edge and the delayed trail edge. The soft middle follows that interval's current width; flares track both its endpoints, including the held trail and its shrinking edge. The glow is drawn above the trail, below the foreground, using brighter red tints derived from the underbar pulse and its opacity. It remains stationary during shakes and hides when the trail catches up, with the bar, or during green healing feedback. It does not inherit the ghost's motion, flicker or lifetime. Existing ghost tuning and the **75-percentage-point-or-larger** trigger are unchanged.
 
 | Command after `//eb` | New default | Meaning |
 | --- | --- | --- |
@@ -51,7 +51,7 @@ Small versions of the ghost glow decorate the red underbar. The soft middle foll
 | `underbar_flare_width <0..100> [bar]` | 3 | Each flare's width, capped on nearly empty bars; 0 hides flares. |
 | `preview hp <1..100> [t/st/ft/a]` | — | Show chosen HP for 8 seconds, without a detached ghost. |
 
-Try `//eb preview hp 50`, then `//eb preview hp 5` to compare the underbar and critical foreground. Use `//eb preview ghost` to compare your existing ghost beside the underbar glow. `//eb preview off` closes the demonstration. Numeric commands without values report settings; append `all` to tune every bar. New settings merge into existing saves; the supplied XML is a tuning reference, not bundled install data, and this batch does not replace existing defaults with Franklet's latest experiments.
+Try `//eb preview hp 50`, then `//eb preview hp 5` to compare the underbar and critical foreground. The exposed red interval and its glow are visible during the configured trail hold/slide; the HP demonstration remains for8s after the trail catches up. HP previews report their chosen percentage in chat. Use `//eb preview ghost` to compare your existing ghost beside the underbar glow. `//eb preview off` closes the demonstration. Numeric commands without values report settings; append `all` to tune every bar. For a more visible comparison, try glow alpha160/height6 and flare alpha220/height16/width6; these are optional values, not forced changes to saved settings. The supplied XML is a tuning reference, not bundled install data, and this batch does not replace existing defaults with Franklet's latest experiments.
 
 ### Impact shake — new controls
 
@@ -114,6 +114,7 @@ Developers: run `lua5.1 tests/impact_spec.lua`, `lua5.1 tests/impact_commands_sp
 
 ## Cumulative changelog
 
+- **2026-10-17 / Batch 11 hotfix:** Fixed HP preview without an explicit bar argument, added preview confirmation, moved the underbar glow above its trail and bounded it to the exposed damage interval. Brighter red glow/flare tints improve separation from the red fill; all saved tuning retained.
 - **2026-10-17 / Batch 10:** Optional small underbar glow and endpoint flares with independent size/alpha controls; red-only pulse through critical HP; constant-opacity normal/white critical foreground; chosen-HP preview. Ghost threshold and saved tuning preserved.
 - **2026-10-08 / Batch 1:** Delayed red damage trail with interruption handling; live dragging and locks; whole-layout/individual setup; optional bounds and resolution recovery; center-screen reset; shorter commands; native TP-blue subtarget and pink focus; bold/italic controls and status. Added shared development documents and root testing record.
 - **2026-10-07 / .4:** UI-aware default positions and resetpos recovery.

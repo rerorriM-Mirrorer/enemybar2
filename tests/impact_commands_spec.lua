@@ -82,6 +82,14 @@ assert(saved==old)
 bar_sets={{{x=100,y=200}},{{x=20,y=30}},{{x=30,y=40}},{{x=40,y=50}}}
 handle_command('preview','hp','5','t')
 assert(preview_args[2]==100 and preview_args[3]==200 and preview_args[4]==5)
+handle_command('preview','hp','5') -- bare frame was the reported regression
+assert(preview_args[2]==100 and preview_args[4]==5)
+handle_command('preview','hp','50')
+assert(preview_args[2]==100 and preview_args[4]==50)
+handle_command('preview','ghost')
+assert(preview_args[2]==100 and preview_args[4]==nil)
+handle_command('preview','hp','10','st')
+assert(preview_args[2]==20 and preview_args[4]==10)
 preview_args=nil
 handle_command('preview','hp','0');handle_command('preview','hp','5.5')
 handle_command('preview','hp','101');handle_command('preview','hp','nan')
