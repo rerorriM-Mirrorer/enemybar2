@@ -1,6 +1,6 @@
 # enemybar2
 
-Native FFXI target, subtarget, focus and aggro health bars for Windower4. Current test build: **Batch12, 1.1.1-a.20261017.12**. Read `TESTING.md` first for installation, current checks and the cumulative test record.
+Native FFXI target, subtarget, focus and aggro health bars for Windower4. Current test build: **Batch13, 1.1.1-a.20261018.13**. Read `TESTING.md` first for installation, current checks and the cumulative test record.
 
 The complete install contains no `data` directory. Overlay its `enemybar2` folder onto the installed addon and reload. Saved settings take precedence; new defaults resolve the supplied `settings(20261017-053248).xml` globals plus Franklet overrides. New positions are computed relative to the client screen; literal uploaded coordinates and character names are not baked in.
 
@@ -11,6 +11,8 @@ The complete install contains no `data` directory. Overlay its `enemybar2` folde
 //eb defaults animations
 //eb preview hp 5
 //eb preview ghost
+//eb preview kill
+//eb preview heal
 ```
 
 `defaults animations` is an explicit opt-in for existing characters, useful for trying the new preset on Cioara. It replaces animation/timing/effect/trail-color settings for the main bar, retaining positions, widths, font and other layout/visibility choices. Append `all` to apply each frame's own defaults to all four groups. Omit this command to retain your saved experiments. A reload alone merges missing settings without replacing existing values.
@@ -26,6 +28,8 @@ Commands take values first, then optional `t`, `st`, `ft`, `a`, or `all`; defaul
 | `//eb defaults animations [bar]` | Apply the baked animation preset explicitly. |
 | `//eb preview hp <1..100> [bar]` | Present chosen HP for8s; exposed-trail glow lasts through the configured hold/slide. |
 | `//eb preview ghost [bar]` | Demonstrate a large loss with the selected bar's saved ghost settings. |
+| `//eb preview kill [bar]` | Demonstrate a20%->0% finishing ghost with proportionally smaller glow/flares. |
+| `//eb preview heal [bar]` | Demonstrate35%->85% recovery; extra glow/flares appear on main only. |
 | `//eb preview off` | Close the demonstration; detached ghosts finish naturally. |
 
 The new main preset uses a400px configured width, .1s foreground/underbar clocks, full trail opacity,2s trail hold/.5s slide,1.2s numeric counting and classic shake with both settling stages. Its ghost has alpha100, no contact/hover/lift distance, .9s lift phase and1s final fade with1px downward/1px right drift. Glow maximum extension33px, flare extension60px/width33px; underbar glow alpha50/extension33px, flare alpha78/extension45px/width30px. Existing Lionstag/Cioara saves remain their own until explicitly changed.
@@ -47,7 +51,22 @@ For white flashing: `//eb foreground_flash_color 255 255 255`, then `//eb foregr
 
 ## Detached ghost: movement, color and flickering height
 
-Ghosts still trigger on an **observed loss of at least75 HP percentage points**. Such a sample may combine updates; the addon does not label it as a proven individual attack. Snapshots retain their tuning and screen position across target changes, live-bar recreation and preview replacement. Scene transitions/unload clean them up.
+Ghosts trigger on an **observed loss of at least75 HP percentage points, or any observed positive-HP->0% transition** while that bar is visible and `ghost_hit` is enabled. Repeated zero updates do not create another ghost; a large killing hit creates one chunk. Small finishing chunks copy only the remaining HP section, with proportionally smaller glow/flare height and capped flare width. Existing large ghosts retain their sizes. The addon needs to observe0%; target disappearance alone does not establish death. Such a sample may combine updates; the addon does not label it as a proven individual attack. Snapshots retain their tuning and screen position across target changes, live-bar recreation and preview replacement. Scene transitions/unload clean them up.
+
+## Main-bar recovery glow
+
+Healing adds a soft green halo over the exposed recovery interval, a white flare at the advancing foreground edge and a pale green flare at the destination. Both ends follow the shrinking interval as the fill catches up; height, width and opacity settle with it. The ornaments use the existing `heal_duration` and `healing_effect` switch. They appear only on the main native FFXI bar, including its healing preview. Secondary/focus/aggro bars retain their earlier recovery behavior.
+
+| Command after `//eb` | Default / meaning |
+| --- | --- |
+| `healing_glow [on/off]` |on; toggle the main recovery halo and flares together. |
+| `healing_glow_alpha <0..255>` |160; halo opacity, multiplied by bar opacity and recovery fade. |
+| `healing_glow_height <0..100>` |12; maximum extension above/below the interval, pixels. |
+| `healing_flare_alpha <0..255>` |230; flare opacity. |
+| `healing_flare_height <0..100>` |24; maximum upward extension, pixels. |
+| `healing_flare_width <0..100>` |6; maximum width, capped for tiny recovery intervals. |
+
+Use `//eb preview heal` after changing tuning. `//eb heal_duration .6` slows the recovery for comparison; existing saves keep their configured duration. Setting the duration to0 snaps recovery and produces no transient ornament. Damage, identity changes, hide, scene transitions and destruction hide or release these images. The separate death sparkle remains a proposal; see `docs/DESIGN-NOTES.md` for its shape and asset brief.
 
 | Command after `//eb` | Default / meaning |
 | --- | --- |
@@ -120,6 +139,8 @@ Run all five `tests/*_spec.lua` files under Lua5.1 from the repository root. Sui
 `WORKFLOW.md` was read directly from GitHub and compared with NPCMirror's canonical copy: identical blob `bc17a173c779a7b921aed1d4bf8c539368aa3730`. Shared formatting uses fragment colors140/167/200/207/0 via Windower chat; help is not echoed to the console. See `docs/ANIMATION.md` for references and `docs/DESIGN-NOTES.md` for proposed future refinements, kept separate from delivered behavior.
 
 ## Cumulative changelog
+
+- **2026-10-18 / Batch13:** Ghosts on all observed killing hits alongside the75-point trigger; small finishing ghosts have scaled glow/flares. Main-only green recovery halo and white/pale-green edge flares, tunable dimensions/alpha, and dedicated kill/heal previews. Existing settings remain authoritative.
 
 - **2026-10-17 / Batch12:** Latest supplied preset as new defaults; opt-in animation preset adoption; adjustable foreground flash RGB/alpha; white/trail ghost fade; phase-linked ghost height/opacity; proportional underbar size; formatted help/topics; idempotent restart/unload cleanup and Ctrl-grid reminders.
 

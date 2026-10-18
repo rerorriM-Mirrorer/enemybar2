@@ -10,11 +10,21 @@ Current HP must remain distinguishable from delayed damage, and the enemy's name
 
 The user's supplied main bar is intentionally broad and luminous; aggro/sub/focus retain smaller effects. Preserve that hierarchy. Before adding another layer, decide whether it conveys new information: ordinary hit, unusually large observed loss, low remaining HP, healing, or observed death. Several effects can reinforce one event if they have one clear onset and decay rather than unrelated rhythms.
 
-The exposed red interval represents unresolved delayed damage and can grow across repeated smaller hits. Ghost triggering uses an observed >=75-percentage-point change, which may combine packet updates; it is not proof of a single attack. Any future attack-specific distinctions would require action correlation rather than pretending HP samples establish them.
+The exposed red interval represents unresolved delayed damage and can grow across repeated smaller hits. Since Batch13, ghosts trigger on an observed >=75-percentage-point change or a positive-HP->0% transition. Samples may combine packet updates; they are not proof of a single attack. Any future attack-specific distinctions would require action correlation rather than pretending HP samples establish them.
 
 ## Does the ending feel intentional?
 
 Potential next experiment: let width disappear faster than height, leaving narrow wisps, then end cleanly without minimum-size remnants. Batch12 already exposes separate width/height curves for that comparison. A distinct death release could be a short final inward contraction or a tiny edge spark, instead of a second large flash. Keep it an option and compare it against the current brief0% main-bar hold before choosing.
+
+### Death sparkle asset brief — still proposed
+
+As the red trail finishes collapsing to zero, a tiny four-point glint appears at its closing endpoint (the left foot of the gauge). A2–3px white core sends slightly uneven rays roughly6–8px outward, with a longer horizontal axis and a faint rose-gold halo. Total lifetime about.15–.25s: quick bloom, soft release, no repeating pulse or shower. The finishing-hit ghost carries the lost HP away independently while this glint stays at the closure point. It must be able to finish after a compact bar hides.
+
+The user suggested matching BarFiller2's sparkle assets so both addons share a visual language. Inspect those existing assets first when resuming this effect. Otherwise seek an isolated white four-point star/glint with a transparent background and soft ray tips, without a baked dark rectangle or surrounding particle field. No specific FFXI DAT asset or path has been verified for this proposal, and the sparkle is not implemented in Batch13.
+
+### Recovery experiment — delivered in Batch13
+
+Main-only recovery halo and white/pale-green edge flares now decorate the closing green recovery interval. They use the existing healing clock, fade and shrink with the interval, and stop on interruption. Per-hit ghost asymmetry, role-specific continuous flashing and the reported rectangular ghost-flare artifact remain separate follow-ups.
 
 ## Does scale mean the same thing on both clients?
 
