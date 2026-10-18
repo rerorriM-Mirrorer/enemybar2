@@ -16,11 +16,11 @@ The exposed red interval represents unresolved delayed damage and can grow acros
 
 Potential next experiment: let width disappear faster than height, leaving narrow wisps, then end cleanly without minimum-size remnants. Batch12 already exposes separate width/height curves for that comparison. A distinct death release could be a short final inward contraction or a tiny edge spark, instead of a second large flash. Keep it an option and compare it against the current brief0% main-bar hold before choosing.
 
-### Death sparkle asset brief — still proposed
+### Death sparkle asset brief — implemented in Batch14
 
 As the red trail finishes collapsing to zero, a tiny four-point glint appears at its closing endpoint (the left foot of the gauge). A2–3px white core sends slightly uneven rays roughly6–8px outward, with a longer horizontal axis and a faint rose-gold halo. Total lifetime about.15–.25s: quick bloom, soft release, no repeating pulse or shower. The finishing-hit ghost carries the lost HP away independently while this glint stays at the closure point. It must be able to finish after a compact bar hides.
 
-The user suggested matching BarFiller2's sparkle assets so both addons share a visual language. Inspect those existing assets first when resuming this effect. Otherwise seek an isolated white four-point star/glint with a transparent background and soft ray tips, without a baked dark rectangle or surrounding particle field. No specific FFXI DAT asset or path has been verified for this proposal, and the sparkle is not implemented in Batch13.
+The user suggested matching BarFiller2's sparkle assets so both addons share a visual language. Batch14 inspected the complete Grid Test3 package and reuses the two exact gain-sparkle arm sprites from `assets/slider/`, as used by `trust_gauge.lua`. The initial implementation preserves their thin white/gold core and soft warm halo rather than creating another texture. Default lengths16px horizontal/12px vertical, alpha230 and lifetime.2s; a fast bloom is followed by a softer release. It starts at the left endpoint after the existing.15s death-trail collapse, survives compact-bar hiding, and is independent of the finishing ghost. Switch/alpha/size/duration are adjustable per bar. No specific FFXI DAT asset has been claimed for these sprites. The sparkle was not implemented in Batch13; this is its first test delivery.
 
 ### Recovery experiment — delivered in Batch13
 
