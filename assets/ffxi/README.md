@@ -10,3 +10,5 @@ The empty middle is the same body texture at low opacity over a near-black backi
 Batch 9 adds `ghost_glow.png` and `ghost_flare.png`: original procedural white/alpha gradients tinted at runtime. The middle has a symmetric vertical falloff; each flare narrows horizontally and grows brighter toward its foot. They are separate from the six unchanged native gauge slices.
 
 `ghost_fill_left/mid/right.png` preserve the corresponding native fill alpha but use neutral white RGB, so the detached white flash has no cyan cast. Live fill/trough PNGs are untouched.
+
+Batch14 reuses `sparkle_gain_arm_h.png` (33x9) and `sparkle_gain_arm_v.png` (9x33) unchanged from BarFiller2's `assets/slider/` in the supplied complete Grid Test3 package. These are the actual gain-sparkle arm sprites used by that addon's `trust_gauge.lua`, with a thin bright core and soft warm halo. They are independent of the FFXI atlas crops described above. Source package: `BarFiller2_CtrlDrag_Grid_Test3_Complete.zip`, Library identity `libfile_570d42b0b5288191a153a93acaa4be5a`. No image modification or DAT extraction was performed for the closing glint.

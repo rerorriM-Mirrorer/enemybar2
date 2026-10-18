@@ -5,6 +5,7 @@ local health_motion = require('healthMotion')
 local animation_settings=require('animationSettings')
 local ghost_motion=require('ghostMotion')
 local underbar_motion=require('underbarMotion')
+local death_spark=require('deathSpark')
 local gauge = {}
 local ghosts = {}
 local methods = {}
@@ -130,6 +131,12 @@ function methods:set_value(value, immediate)
         g.parts={image('ghost_fill_left',tint),image('ghost_fill_mid',tint),image('ghost_fill_right',tint)}
         ghosts[#ghosts+1]=g
         gauge.update_ghosts() -- draw the detached white copy immediately at detection
+    end
+    if not immediate and self.visible and killing_hit then
+        -- Freeze the unshaken closing endpoint now. Aggro hide/reflow and target
+        -- switches must not cancel or move this scheduled finishing accent.
+        local delay=self.damage_trail and self.duration>0 and .15 or 0
+        death_spark.spawn(self.x+6,self.y+5.5,self.ghost_options,self.color.alpha or 255,self.clock,delay)
     end
     if self.motion then self.motion:update(value,immediate or self.duration<=0) end
     if immediate or self.duration <= 0 then
@@ -320,16 +327,18 @@ function methods:destroy()
 end
 
 -- Independent overlays survive target switches, hide, and gauge recreation.
--- Only scene transitions/unload clear them before their two-second lifetime ends.
+-- Scene transitions/unload clear both detached chunks and scheduled glints.
 local function destroy_ghost(g)
     for _,p in ipairs(g.parts) do p:destroy() end
     for _,p in ipairs(g.glow or {}) do p:destroy() end
 end
 function gauge.clear_ghosts()
+    death_spark.clear()
     for _,g in ipairs(ghosts) do destroy_ghost(g) end
     ghosts={}
 end
 function gauge.update_ghosts()
+    death_spark.update()
     for i=#ghosts,1,-1 do
         local g=ghosts[i]
         local age=math.max(0,g.clock()-g.born)

@@ -25,7 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 _addon.name = 'enemybar2'
 _addon.author = 'mmckee,akaden,Awake'
-_addon.version = '1.1.1-a.20261018.13'
+_addon.version = '1.1.1-a.20261018.14'
 _addon.language = 'English'
 _addon.commands = {'enemybar','eb'}
 
@@ -457,9 +457,9 @@ function handle_command(c, ...)
         local frame_arg
         if args[1]=='hp' then frame_arg=args[3] else frame_arg=args[2] end
         local name=normalize_bar_name(frame_arg or 't')
-        if not S{'ghost','hp','heal','kill'}:contains(args[1]) or not name or name=='all' or
+        if not S{'ghost','hp','heal','kill','spark'}:contains(args[1]) or not name or name=='all' or
             (args[1]=='hp' and (not hpp or hpp<1 or hpp>100 or hpp~=math.floor(hpp))) then
-            windower.add_to_chat(123,'EnemyBar: preview ghost/heal/kill [bar], preview hp <1..100> [bar], or preview off');return
+            windower.add_to_chat(123,'EnemyBar: preview ghost/heal/kill/spark [bar], preview hp <1..100> [bar], or preview off');return
         end
         if state.in_cs then windower.add_to_chat(123,'EnemyBar: preview unavailable during cutscenes');return end
         local frame=settings[name..'_bar']
@@ -478,7 +478,7 @@ function handle_command(c, ...)
         return handle_command('set','show',args[1] or 't','on')
     end
     local toggles=S{'show_target','show_target_icon','show_action','show_dist','show_debuff',
-        'bold','italic','bounds','damage_trail','healing_effect','text_effect','hit_shake','low_hp_pulse','ghost_hit','ghost_glow','underbar_glow','ghost_glow_flicker','healing_glow'}
+        'bold','italic','bounds','damage_trail','healing_effect','text_effect','hit_shake','low_hp_pulse','ghost_hit','ghost_glow','underbar_glow','ghost_glow_flicker','healing_glow','death_spark'}
     if toggles:contains(c) and (#args==0 or (#args==1 and normalize_bar_name(args[1]))) then
         local frame=normalize_bar_name(args[1] or 't')
         local value=not settings[(frame=='all' and 'target' or frame)..'_bar'][c]
@@ -570,6 +570,8 @@ function handle_command(c, ...)
             end
             windower.add_to_chat(207,string.format('  trail alpha %g, pulse period %g, ghost %s',
                 f.trail_color.alpha,f.pulse_period,tostring(f.ghost_hit)))
+            windower.add_to_chat(207,string.format('  death sparkle %s: alpha %g, size %gpx, duration %gs',
+                tostring(f.death_spark),f.death_spark_alpha,f.death_spark_size,f.death_spark_duration))
             windower.add_to_chat(207,string.format('  seconds: fill %g, trail hold %g, trail slide %g, healing %g, text %g',
                 f.animation_duration,f.trail_delay,f.trail_duration,f.heal_duration,f.text_duration))
             windower.add_to_chat(207,string.format('  split periods: foreground %g, underbar %g; settle %s',f.foreground_period,f.underbar_period,f.super_settle))
@@ -687,7 +689,7 @@ function handle_command(c, ...)
             else
                 windower.add_to_chat(123, 'EnemyBar: not enough arguments for "'..setting..'"')
             end
-        elseif S{'show','show_target_icon','show_target','show_debuff','show_action','show_dist','bold','italic','bounds','locked','damage_trail','healing_effect','text_effect','hit_shake','low_hp_pulse','ghost_hit','ghost_glow','underbar_glow','ghost_glow_flicker','healing_glow'}:contains(setting) then
+        elseif S{'show','show_target_icon','show_target','show_debuff','show_action','show_dist','bold','italic','bounds','locked','damage_trail','healing_effect','text_effect','hit_shake','low_hp_pulse','ghost_hit','ghost_glow','underbar_glow','ghost_glow_flicker','healing_glow','death_spark'}:contains(setting) then
             if args[3] then
                 local b = normalize_boolean(args[3])
                 if b == nil then

@@ -40,7 +40,7 @@ assert(loadfile('enemybar2.lua'))()
 local function event(name,...)
     for _,fn in ipairs(events[name] or {}) do fn(...) end
 end
-assert(_addon.version=='1.1.1-a.20261018.13' and target_bar and #aggro_bars==6)
+assert(_addon.version=='1.1.1-a.20261018.14' and target_bar and #aggro_bars==6)
 assert(target_bar.main_bar and not subtarget_bar.main_bar and not focustarget_bar.main_bar and not aggro_bars[1].main_bar)
 assert(settings.target_bar.foreground_flash_alpha==0 and settings.target_bar.ghost_lift_up==0)
 event('addon command','help','layout');assert(logs[#logs][1]==0)

@@ -30,7 +30,7 @@ for _,hp in ipairs({.01,.2,.75,1}) do
     g:set_value(hp,true);g:show()
     local first=#all+1
     g:set_value(0,false)
-    assert(#all==first+5)
+    assert(#all==first+7) -- six ghost parts, plus two scheduled sparkle arms
     near(all[first]._w,(g.width-12)*hp)
     if hp<.75 then assert(all[first+1]._w<=all[first]._w/2) end
     local count=#all;g:set_value(0,false);assert(#all==count)
@@ -87,5 +87,7 @@ preview.start({},0,0,nil,'kill',true)
 assert(calls[1]==20 and calls[2]==0 and calls.options.ghost_hit)
 preview.start({},0,0,nil,'heal',false)
 assert(calls[3]==35 and calls[4]==85 and not calls.options.ghost_hit and not calls.main)
+preview.start({death_spark=false},0,0,nil,'spark',true)
+assert(calls[5]==20 and calls[6]==0 and calls.options.death_spark and not calls.options.ghost_hit)
 preview.clear()
 print('recovery_death_spec: killing ghosts, main recovery, interruption, preview and cleanup passed')
