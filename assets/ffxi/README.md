@@ -1,4 +1,4 @@
-These textures derive from `menu/gauge` in the supplied FFXI `51.DAT`. The game artwork belongs to Square Enix; extraction, the floating-gauge adaptation and renderer changes are by Awake. The original decoded 64 × 64 atlas and its source hash/crop coordinates are retained under `source/`. The complete DAT is not included or modified.
+These textures derive from `menu/gauge` in the supplied FFXI `51.DAT`. The game artwork belongs to Square Enix; extraction, the floating-gauge adaptation and renderer changes are by A. The original decoded 64 × 64 atlas and its source hash/crop coordinates are retained under `source/`. The complete DAT is not included or modified.
 
 The trough endcaps are unchanged 4 × 8 pixel crops from atlas rectangles `(0,8,4,8)` and `(4,8,4,8)`, matching the HP/MP/TP composition in `framesus` group 8. They render at 6 × 12 pixels. The native 64 × 8 body at `(0,0)` supplies the three fill slices: 2/60/2 pixels wide, rendered at 9 pixels high. Only the middle stretches normally; tiny HP slivers compress their fill caps to stay within the actual HP fraction. The fixed outer caps keep their native shading and color.
 

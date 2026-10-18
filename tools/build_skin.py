@@ -1,4 +1,4 @@
-"""Awake: extract menu/gauge from a supplied FFXI menu DAT and build slices.
+"""A: extract menu/gauge from a supplied FFXI menu DAT and build slices.
 
     python tools/build_skin.py --dat /path/to/51.DAT
 

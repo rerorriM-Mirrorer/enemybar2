@@ -1,5 +1,14 @@
 # TESTING.md
 
+## Current Development Status — 2026-10-18 (attribution normalization)
+
+- **Branch / starting source:** `ffxi-bar-skin-2026-10-07` / `3396721494b4f5945065cd1b8dbd5100c105f557`.
+- **Change:** Normalize collaborative source, tool and asset-adaptation credits to **A**, preserving original addon contributors and Square Enix ownership. No renderer or texture behavior is changed.
+- **Verification:** Text-only diff and exact-word search; no new FFXI live test.
+- **Next:** Retain the branch's recorded native-gauge testing sequence and confirm the published head.
+
+---
+
 This document belongs in the repository root and in development/testing packages. Private development and testing record.
 
 ## Current testing batch
