@@ -231,7 +231,7 @@ function bars.refresh_text(o)
     if o.gauge and o.gauge.motion then
         local feedback=o.gauge.motion:sample()
         o.name_text.hpp=math.floor(feedback.text_value*100+.5)
-        -- Awake: brighter text-only healing flash sampled from the upper reference swatch.
+        -- A: brighter text-only healing flash sampled from the upper reference swatch.
         local flash=feedback.flash_kind=='heal' and {red=53,green=242,blue=100} or
             (o.trail_color or {red=167,green=57,blue=96})
         color=health_motion.mix(color,flash,feedback.flash)

@@ -1,4 +1,4 @@
--- Awake: real motion/renderer with image mocks; no game state or packets needed.
+-- A: real motion/renderer with image mocks; no game state or packets needed.
 package.path='./?.lua;'..package.path
 local all={}
 package.loaded.images={new=function(config)

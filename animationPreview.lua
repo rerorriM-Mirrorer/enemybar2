@@ -1,4 +1,4 @@
--- Awake: preview bars have separate identities/lifetimes from combat bars.
+-- A: preview bars have separate identities/lifetimes from combat bars.
 local preview={}
 local animation_settings=require('animationSettings')
 local ghost_motion=require('ghostMotion')

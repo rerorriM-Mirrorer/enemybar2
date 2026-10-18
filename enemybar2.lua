@@ -24,7 +24,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --]]
 
 _addon.name = 'enemybar2'
-_addon.author = 'mmckee,akaden,Awake'
+_addon.author = 'mmckee,akaden,A'
 _addon.version = '1.1.1-a.20261018.14'
 _addon.language = 'English'
 _addon.commands = {'enemybar','eb'}
@@ -399,7 +399,7 @@ function cache_party_member(p, party_number)
     end
 end
 
--- Awake: use UI dimensions, not the render buffer. Saved positions remain
+-- A: use UI dimensions, not the render buffer. Saved positions remain
 -- explicit; resetpos is the escape hatch after moving to a smaller client.
 local function default_bar_position(name, frame)
     local ui = windower.get_windower_settings()
@@ -973,7 +973,7 @@ for _,name in ipairs(frame_names) do
         end
     end
 end
--- Awake: adopt the requested native subtarget/focus presets once for existing
+-- A: adopt the requested native subtarget/focus presets once for existing
 -- installs. A saved revision marker preserves later user color/skin edits.
 local migrated=false
 for _,name in ipairs({'subtarget','focustarget'}) do

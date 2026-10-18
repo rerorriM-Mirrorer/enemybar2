@@ -1,4 +1,4 @@
--- Awake: dispatch once; an ensuing unload event shares idempotent cleanup.
+-- A: dispatch once; an ensuing unload event shares idempotent cleanup.
 local lifecycle={}
 function lifecycle.new(cleanup,dispatch,report)
     local self={pending=false,cleaned=false}

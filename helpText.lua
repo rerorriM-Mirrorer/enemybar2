@@ -1,4 +1,4 @@
--- Awake: BattleStations-style chat-only help, with independently colored fragments.
+-- A: BattleStations-style chat-only help, with independently colored fragments.
 require('chat')
 local help={}
 local sections={}

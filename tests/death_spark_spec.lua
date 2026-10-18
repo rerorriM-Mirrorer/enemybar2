@@ -1,4 +1,4 @@
--- Awake: delayed closing endpoint, independent lifetimes and resource ownership.
+-- A: delayed closing endpoint, independent lifetimes and resource ownership.
 package.path='./?.lua;'..package.path
 local all={}
 package.loaded.images={new=function(config)

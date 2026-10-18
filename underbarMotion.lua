@@ -1,4 +1,4 @@
--- Awake: exposed interval controls size, independently of damage timing/opacity.
+-- A: exposed interval controls size, independently of damage timing/opacity.
 -- Maximum sizes are existing tuning values; minima are capped by those maxima.
 local motion={}
 local function dimension(maximum,minimum,factor)

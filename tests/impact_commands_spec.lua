@@ -1,4 +1,4 @@
--- Awake: exercise the actual command handlers without starting a game client.
+-- A: exercise the actual command handlers without starting a game client.
 package.path='./?.lua;'..package.path
 function S(t)
     function t:contains(value)

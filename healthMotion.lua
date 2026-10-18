@@ -1,4 +1,4 @@
--- Awake: time-based feedback independent of rendering and combat tracking.
+-- A: time-based feedback independent of rendering and combat tracking.
 -- Every interruption starts at the currently displayed number, not an old goal.
 local motion = {}
 local animation_settings=require('animationSettings')

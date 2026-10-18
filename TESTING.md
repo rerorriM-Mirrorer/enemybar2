@@ -1,5 +1,15 @@
 # TESTING.md
 
+## Current Development Status — 2026-10-18 (attribution normalization)
+
+- **Repository / branch:** `rerorriM-Mirrorer/enemybar2` / `underbar-glow-2026-10-17`; starting source `987a60a86fe75f48b39fcf484e443ad901da2566`.
+- **Change:** Normalize collaborative author headers, comments, tests, and texture-adaptation credit to **A**. Preserve `mmckee` and `akaden` in `_addon.author`, Square Enix attribution, all existing tests and historical batch records.
+- **Verification:** All 24 prior references removed; exact-word search, strict substitution-only diff review, and Git whitespace check passed. The change is text-only; animation logic, settings and textures are untouched.
+- **Live FFXI status:** No additional in-game testing. Batch14 death-spark acceptance is still pending.
+- **Next:** Perform existing Batch14 live checks and confirm the published branch head.
+
+---
+
 ## Current tests — Batch14 BarFiller2 closing glint (2026-10-18)
 
 - **Repository / branch:** `rerorriM-Mirrorer/enemybar2`, `underbar-glow-2026-10-17`; baseline Batch13 published `a435f46`. Root AGENTS/WORKFLOW/TESTING read directly from the current GitHub branch before editing. Local worktree started clean; prior source history remains preserved.

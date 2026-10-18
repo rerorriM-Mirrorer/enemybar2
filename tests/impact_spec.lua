@@ -1,4 +1,4 @@
--- Awake: deterministic Lua 5.1 checks for impact timing and overlay ownership.
+-- A: deterministic Lua 5.1 checks for impact timing and overlay ownership.
 package.path='./?.lua;'..package.path
 local settings=require('animationSettings')
 local motion=require('healthMotion')

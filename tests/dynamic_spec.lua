@@ -1,4 +1,4 @@
--- Awake: curve boundaries, synchronized modulation, tint snapshots and flash RGBA.
+-- A: curve boundaries, synchronized modulation, tint snapshots and flash RGBA.
 package.path='./?.lua;'..package.path
 local settings=require('animationSettings')
 local ghost=require('ghostMotion')

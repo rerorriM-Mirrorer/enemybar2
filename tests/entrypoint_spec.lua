@@ -1,4 +1,4 @@
--- Awake: smoke the real entry point and its registered lifecycle/mouse handlers.
+-- A: smoke the real entry point and its registered lifecycle/mouse handlers.
 -- Rendering and game APIs are mocked, but command registration/config are real.
 package.path='./?.lua;'..package.path
 function S(t)

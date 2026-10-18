@@ -1,4 +1,4 @@
--- Awake: small finishing ghosts, main-only recovery, interruptions and cleanup.
+-- A: small finishing ghosts, main-only recovery, interruptions and cleanup.
 package.path='./?.lua;'..package.path
 local all={}
 package.loaded.images={new=function(config)

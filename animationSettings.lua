@@ -1,4 +1,4 @@
--- Awake: one source of defaults and command ranges for animation tuning.
+-- A: one source of defaults and command ranges for animation tuning.
 local settings={}
 settings.defaults={foreground_period=.25,underbar_period=.1,ghost_lift_up=6,
     ghost_lift_right=1,ghost_drift_up=9,ghost_drift_right=1,

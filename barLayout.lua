@@ -1,4 +1,4 @@
--- Awake: clamp a whole arrangement by one delta, preserving relative spacing.
+-- A: clamp a whole arrangement by one delta, preserving relative spacing.
 -- Oversized arrangements stay anchored at an edge; widths are never rewritten.
 local layout = {}
 function layout.bounds(group)

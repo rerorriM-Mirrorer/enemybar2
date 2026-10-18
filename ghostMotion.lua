@@ -1,4 +1,4 @@
--- Awake: a detached chunk owns its contact, lift, glow and fade timeline.
+-- A: a detached chunk owns its contact, lift, glow and fade timeline.
 -- Sampling absolute elapsed time keeps the effect consistent across client FPS.
 local ghost={}
 local function clamp(v) return math.max(0,math.min(1,v)) end

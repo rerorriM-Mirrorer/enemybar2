@@ -1,4 +1,4 @@
--- Awake: defaults resolved from settings(20261017-053248).xml global + Franklet.
+-- A: defaults resolved from settings(20261017-053248).xml global + Franklet.
 -- Saved settings take precedence; screen-relative positions are supplied at load.
 return function()
 local preset={

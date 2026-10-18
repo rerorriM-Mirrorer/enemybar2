@@ -1,4 +1,4 @@
--- Awake: explicit opt-in adoption of baked animation defaults, preserving layout.
+-- A: explicit opt-in adoption of baked animation defaults, preserving layout.
 local preset={}
 local animation_settings=require('animationSettings')
 local function copy(v)

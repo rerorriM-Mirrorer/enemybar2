@@ -1,4 +1,4 @@
--- Awake: native menu/gauge slices, with separate trough and fill pieces.
+-- A: native menu/gauge slices, with separate trough and fill pieces.
 -- Only the centers stretch; combat identity stays in bars.lua.
 local images = require('images')
 local health_motion = require('healthMotion')

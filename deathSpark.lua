@@ -1,4 +1,4 @@
--- Awake: detached, one-shot closing glints using BarFiller2's original arm sprites.
+-- A: detached, one-shot closing glints using BarFiller2's original arm sprites.
 -- Queue at observed death so compact bars may hide before the trail closes.
 local images=require('images')
 local spark={}
