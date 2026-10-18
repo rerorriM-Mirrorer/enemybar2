@@ -6,8 +6,9 @@ bars = {x_res = windower.get_windower_settings().ui_x_res,y_res = windower.get_w
 
 -- Base class method new
 
-function bars.new(bar_settings)
+function bars.new(bar_settings, main_bar)
    local o = {}
+   o.main_bar = main_bar == true
    o.skin = bar_settings.skin or 'classic'
    o.background_alpha = bar_settings.background_alpha or 128
    o.animation_duration = bar_settings.animation_duration or 0.18
@@ -68,7 +69,8 @@ function bars.initialize(o)
 		o.gauge = ffxi_gauge.new(o.width, o.color, {
             background_alpha=o.background_alpha, animation_duration=o.animation_duration,
             damage_trail=o.damage_trail,trail_delay=o.trail_delay,
-            trail_duration=o.trail_duration,trail_color=o.trail_color,effects=o.effects,ghost_hit=o.ghost_hit,ghost_options=o.ghost_options})
+            trail_duration=o.trail_duration,trail_color=o.trail_color,effects=o.effects,ghost_hit=o.ghost_hit,ghost_options=o.ghost_options,
+            main_bar=o.main_bar})
 	else
 		o.left_cap_image = images.new({
 				pos = {x=0,y=0},

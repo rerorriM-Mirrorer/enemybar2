@@ -60,6 +60,12 @@ function gauge.new(width, color, options)
         image('fill_left', color), image('fill_mid', color),
         image('fill_right', color),
     }
+    -- Main-bar recovery ornaments sit above the fill so the white moving edge
+    -- remains visible. Secondary bars retain their established healing motion.
+    if options.main_bar and self.motion and options.effects.healing_effect and self.ghost_options.healing_glow then
+        local green={red=53,green=242,blue=100,alpha=color.alpha or 255}
+        self.heal_glow={image('ghost_glow',green),image('ghost_flare',green),image('ghost_flare',green)}
+    end
     if self.motion and options.effects.low_hp_pulse then
         -- Neutral silhouettes give the alternate state its configured RGB/alpha
         -- without the native texture's cyan cast; normal fill keeps its tint.
@@ -104,10 +110,14 @@ function methods:set_value(value, immediate)
     value = math.max(0, math.min(1, value))
     self:advance()
     -- Snapshot the lost segment before identity/reset or later movement can change it.
-    if not immediate and self.visible and self.ghost_hit and self.target_value-value>=.75-1e-9 then
+    local loss=self.target_value-value
+    local killing_hit=self.target_value>0 and value==0
+    if not immediate and self.visible and self.ghost_hit and
+        (loss>=.75-1e-9 or killing_hit) then
         local tint=self.trail_color or {red=167,green=57,blue=96,alpha=200}
         local g={x=self.x+6+(self.width-12)*value,y=self.y+1,
             width=(self.width-12)*(self.target_value-value),born=self.clock(),clock=self.clock,tint=tint,
+            size_scale=math.sqrt(math.min(1,loss/.75)),
             alpha=(self.color.alpha or 255)*self.ghost_options.ghost_alpha/255,
             options=animation_settings.snapshot(self.ghost_options)}
         -- Glow primitives precede the white chunk so its foot stays crisp.
@@ -181,7 +191,36 @@ function methods:layout_fill()
         end
     end
     self:layout_trail_glow()
+    self:layout_heal_glow()
     self:refresh_visibility()
+end
+
+function methods:layout_heal_glow()
+    if not self.heal_glow then return end
+    local o=self.ghost_options
+    local span=self.width-12
+    local width=span*math.max(0,self.target_value-self.value)
+    self.heal_glow_width=width
+    -- The exposed green interval closes as the white foreground catches up.
+    -- A square-root curve keeps small recoveries legible without oversized tips.
+    local size=math.sqrt(math.min(1,width/(span*.25)))
+    local strength=self.feedback and self.feedback.healing and self.feedback.white or 0
+    local alpha=(self.color.alpha or 255)*strength
+    local x,y=self.x+6+span*self.value,self.y+1
+    local height=o.healing_glow_height*size
+    local middle=self.heal_glow[1]
+    middle:pos(x,y-height);middle:size(width,9+2*height)
+    middle:alpha(math.floor(alpha*o.healing_glow_alpha/255+.5))
+    local flare_width=math.min(o.healing_flare_width*size,width/2)
+    local flare_height=o.healing_flare_height*size
+    for i=2,3 do
+        local p=self.heal_glow[i]
+        p:pos((i==2 and x or x+width)-flare_width/2,y-flare_height)
+        p:size(flare_width,9+flare_height)
+        -- Moving foreground edge is white; destination edge gathers pale green.
+        if i==2 then p:color(255,255,255) else p:color(154,255,184) end
+        p:alpha(math.floor(alpha*o.healing_flare_alpha/255+.5))
+    end
 end
 
 function methods:layout_trail_glow()
@@ -242,6 +281,12 @@ function methods:refresh_visibility()
         part:visible(self:trail_visible() and not (self.feedback and self.feedback.healing)
             and (self.trail_glow_width or 0)>0 and part:width()>0 and enabled)
     end
+    for i,part in ipairs(self.heal_glow or {}) do
+        local enabled=i==1 and self.ghost_options.healing_glow_alpha>0 or
+            i>1 and self.ghost_options.healing_flare_alpha>0
+        part:visible(self.visible and self.feedback.healing and
+            (self.heal_glow_width or 0)>0 and part:width()>0 and enabled)
+    end
 end
 
 function methods:show()
@@ -271,6 +316,7 @@ function methods:destroy()
     for _, part in ipairs(self.trail or {}) do part:destroy() end
     for _, part in ipairs(self.trail_glow or {}) do part:destroy() end
     for _, part in ipairs(self.critical_fill or {}) do part:destroy() end
+    for _, part in ipairs(self.heal_glow or {}) do part:destroy() end
 end
 
 -- Independent overlays survive target switches, hide, and gauge recreation.
@@ -301,17 +347,19 @@ function gauge.update_ghosts()
             if g.glow then
                 local strength=pose.glow*(1-pose.fade)
                 if o.ghost_glow_flicker then strength=strength*pose.flicker end
-                local height=9+2*o.ghost_glow_height*pose.glow*pose.height_scale
+                local height=9+2*o.ghost_glow_height*pose.glow*pose.height_scale*g.size_scale
                 g.glow[1]:pos(x,y-(height-9)/2)
                 g.glow[1]:size(g.width,height)
                 g.glow[1]:alpha(math.floor(g.alpha*o.ghost_glow_alpha/255*strength+.5))
                 g.glow[1]:visible(strength>0 and o.ghost_glow_alpha>0)
-                local flare_height=9+o.ghost_flare_height*pose.glow*pose.height_scale
+                local flare_height=9+o.ghost_flare_height*pose.glow*pose.height_scale*g.size_scale
+                local flare_width=o.ghost_flare_width
+                if g.size_scale<1 then flare_width=math.min(flare_width*g.size_scale,g.width/2) end
                 local bright=health_motion.mix(o.ghost_glow_color,{red=255,green=255,blue=255},.5)
                 for j=2,3 do
                     local p=g.glow[j]
-                    p:pos((j==2 and x or x+g.width)-o.ghost_flare_width/2,y+9-flare_height)
-                    p:size(o.ghost_flare_width,flare_height)
+                    p:pos((j==2 and x or x+g.width)-flare_width/2,y+9-flare_height)
+                    p:size(flare_width,flare_height)
                     p:color(bright.red,bright.green,bright.blue)
                     p:alpha(math.floor(g.alpha*o.ghost_flare_alpha/255*strength+.5))
                     p:visible(strength>0 and o.ghost_flare_alpha>0 and o.ghost_flare_width>0)

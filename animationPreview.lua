@@ -11,19 +11,23 @@ end
 function preview.clear()
     if active then bars.destroy(active.bar);active=nil end
 end
-function preview.start(frame,x,y,hpp)
+function preview.start(frame,x,y,hpp,mode,main_bar)
     preview.clear()
     local options=copy(frame)
-    options.pos={x=x,y=y};options.ghost_hit=hpp==nil
-    local label=hpp and 'HP Preview' or 'Ghost Preview'
+    mode=mode or (hpp and 'hp' or 'ghost')
+    options.pos={x=x,y=y};options.ghost_hit=mode=='ghost' or mode=='kill'
+    local label=({hp='HP Preview',ghost='Ghost Preview',heal='Healing Preview',kill='Killing Hit Preview'})[mode]
     options.show_dist,options.show_target,options.show_target_icon=false,false,false
     options.show_action,options.show_debuff=false,false
-    local b=bars.new(options)
-    bars.update_target(b,label,100,0,nil,'preview')
+    local b=bars.new(options,main_bar~=false)
+    local initial=mode=='heal' and 35 or (mode=='kill' and 20 or 100)
+    local final=mode=='heal' and 85 or (mode=='kill' and 0 or (hpp or 20))
+    bars.update_target(b,label,initial,0,nil,'preview')
     bars.show(b)
-    bars.update_target(b,label,hpp or 20,0,nil,'preview')
+    bars.update_target(b,label,final,0,nil,'preview')
     local duration=ghost_motion.duration(animation_settings.snapshot(options))
-    active={bar=b,expires=os.clock()+(hpp and 8 or math.max(duration,(options.trail_delay or 1.5)+(options.trail_duration or .45))+.3)}
+    local lifetime=mode=='hp' and 8 or math.max(duration,(options.trail_delay or 1.5)+(options.trail_duration or .45),options.heal_duration or .35)+.3
+    active={bar=b,expires=os.clock()+lifetime}
 end
 function preview.update()
     if not active then return end

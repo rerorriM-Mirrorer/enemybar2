@@ -23,8 +23,8 @@ package.loaded.config={load=function(defaults)
 end,register=function(_,fn) fn() end}
 package.loaded.images={};package.loaded.texts={};package.loaded.packets={}
 package.preload.bars=function()
-    bars={new=function(frame)
-        local b={x=frame.pos.x,y=frame.pos.y,width=frame.width,skin=frame.skin,font_size=frame.font_size}
+    bars={new=function(frame,main_bar)
+        local b={x=frame.pos.x,y=frame.pos.y,width=frame.width,skin=frame.skin,font_size=frame.font_size,main_bar=main_bar}
         objects[#objects+1]=b;return b
     end,move=function(b,x,y) b.x,b.y=x,y end,
     destroy=function(b) assert(not b.dead,'double destruction');b.dead=true end,
@@ -40,7 +40,8 @@ assert(loadfile('enemybar2.lua'))()
 local function event(name,...)
     for _,fn in ipairs(events[name] or {}) do fn(...) end
 end
-assert(_addon.version=='1.1.1-a.20261017.12' and target_bar and #aggro_bars==6)
+assert(_addon.version=='1.1.1-a.20261018.13' and target_bar and #aggro_bars==6)
+assert(target_bar.main_bar and not subtarget_bar.main_bar and not focustarget_bar.main_bar and not aggro_bars[1].main_bar)
 assert(settings.target_bar.foreground_flash_alpha==0 and settings.target_bar.ghost_lift_up==0)
 event('addon command','help','layout');assert(logs[#logs][1]==0)
 event('addon command','setup','on');assert(logs[#logs][2]:find('Ctrl',1,true))
