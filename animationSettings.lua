@@ -19,6 +19,7 @@ settings.defaults={foreground_period=.25,underbar_period=.1,ghost_lift_up=6,
     underbar_height_curve=.5,underbar_width_curve=1,
     healing_glow=true,healing_glow_alpha=160,healing_glow_height=12,
     healing_flare_alpha=230,healing_flare_height=24,healing_flare_width=6,
+    death_spark_style='vivid',death_spark_h_cap=5,death_spark_v_cap=7,
     death_spark=true,death_spark_alpha=230,death_spark_duration=.2,death_spark_size=16}
 settings.ranges={foreground_period={.02,10},underbar_period={.02,10},
     ghost_lift_up={-100,100},ghost_lift_right={-100,100},ghost_drift_up={-100,100},
@@ -37,8 +38,9 @@ settings.ranges={foreground_period={.02,10},underbar_period={.02,10},
     underbar_height_curve={.1,4},underbar_width_curve={.1,4},
     healing_glow_alpha={0,255},healing_glow_height={0,100},
     healing_flare_alpha={0,255},healing_flare_height={0,100},healing_flare_width={0,100},
+    death_spark_h_cap={1,16},death_spark_v_cap={1,16},
     death_spark_alpha={0,255},death_spark_duration={.05,2},death_spark_size={2,64}}
-settings.enums={ghost_fade_to={'white','trail'},ghost_height_mode={'off','snap','smooth'},
+settings.enums={death_spark_style={'classic','vivid'},ghost_fade_to={'white','trail'},ghost_height_mode={'off','snap','smooth'},
     underbar_size_mode={'fixed','scaled'}}
 function settings.valid(name,raw)
     local v=tonumber(raw);local r=settings.ranges[name]

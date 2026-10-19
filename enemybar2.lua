@@ -25,7 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 _addon.name = 'enemybar2'
 _addon.author = 'mmckee,akaden,A'
-_addon.version = '1.1.1-a.20261018.14'
+_addon.version = '1.1.1-a.20261019.15'
 _addon.language = 'English'
 _addon.commands = {'enemybar','eb'}
 
@@ -572,6 +572,8 @@ function handle_command(c, ...)
                 f.trail_color.alpha,f.pulse_period,tostring(f.ghost_hit)))
             windower.add_to_chat(207,string.format('  death sparkle %s: alpha %g, size %gpx, duration %gs',
                 tostring(f.death_spark),f.death_spark_alpha,f.death_spark_size,f.death_spark_duration))
+            windower.add_to_chat(207,string.format('  spark style %s; horizontal/vertical thickness caps %g/%gpx',
+                f.death_spark_style,f.death_spark_h_cap,f.death_spark_v_cap))
             windower.add_to_chat(207,string.format('  seconds: fill %g, trail hold %g, trail slide %g, healing %g, text %g',
                 f.animation_duration,f.trail_delay,f.trail_duration,f.heal_duration,f.text_duration))
             windower.add_to_chat(207,string.format('  split periods: foreground %g, underbar %g; settle %s',f.foreground_period,f.underbar_period,f.super_settle))

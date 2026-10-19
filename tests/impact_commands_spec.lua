@@ -151,6 +151,19 @@ assert(settings.target_bar.ghost_height_mode=='snap' and settings.target_bar.gho
 assert(saved==recreated and saved>0)
 assert(settings.target_bar.pos.x==460 and settings.target_bar.pos.y==688)
 assert(settings.target_bar.text_duration==1.2 and settings.target_bar.ghost_fade_duration==1)
+
+handle_command('death_spark_style','classic','all')
+assert(settings.target_bar.death_spark_style=='classic' and settings.aggro_bar.death_spark_style=='classic')
+handle_command('death_spark_style','vivid')
+handle_command('death_spark_h_cap','4')
+handle_command('death_spark_v_cap','9','a')
+assert(settings.target_bar.death_spark_h_cap==4 and settings.aggro_bar.death_spark_v_cap==9)
+local before=saved
+handle_command('death_spark_h_cap','0')
+handle_command('death_spark_v_cap','17')
+handle_command('death_spark_style','bad')
+assert(saved==before)
+
 handle_command('restart');handle_command('restart');handle_command('unload')
 assert(lifecycle_cleaned==1 and #lifecycle_commands==1 and lifecycle_commands[1]=='lua reload enemybar2')
 print('impact_commands_spec: defaults, forms, validation, reports and preserved tuning passed')

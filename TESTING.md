@@ -1,5 +1,27 @@
 # TESTING.md
 
+## Current tests — Batch15 spark visibility (2026-10-19)
+
+- Branch: `spark-visibility-2026-10-19`, baseline `dc55ab2` from the current animation branch. Version `1.1.1-a.20261019.15`.
+- User feedback: endpoint anchoring is correct; the death sparkle feels too subtle/incomplete. Independently capped arm thicknesses requested. Earlier acceptance statements remain historical below.
+- Change: default new `death_spark_style vivid` increases horizontal/vertical thickness ceilings from 3/3 to 5/7px and uses square-root opacity falloff. Same two textures/primitives, same center, bloom geometry, onset, lifetime, snapshot ownership and trigger rules. Existing saved size/alpha/duration remain untouched. `classic` reproduces Batch14 rendering, ignoring the new caps.
+- Controls: `//eb death_spark_style <classic|vivid> [bar]`, `//eb death_spark_h_cap <1..16> [bar]`, `//eb death_spark_v_cap <1..16> [bar]`. Omit values to report; `all` supported. Horizontal cap sets its height; vertical cap sets its width. Actual thickness also scales with size (5/16 and 7/16 respectively), minimum 1px. Caps are ceilings, not forced widths. Defaults 5/7px.
+- Install: complete overlay under `enemybar2/`; back up installed addon/data, replace matching runtime files, then `//lua reload enemybar2`. No data/XML shipped. Status lists version, style and both caps. Do not run animation defaults to test this pass.
+- Verification: all 25 Lua files parse in Lua 5.1; seven mocked suites pass. Focused comparisons cover classic 3/3 vs vivid 5/7 at size64, independent 2/11 caps, brighter mid-release, unchanged centers and expiry, captured cap ownership, enum/range validation and existing trigger/cleanup behavior. `ffxiGauge.lua`, hit tracking and all textures are unchanged. No live FFXI/Windower test performed.
+
+### Focused live comparison
+
+1. `//eb status`: verify `.20261019.15`; record character, UI resolution and current spark size/alpha/duration. Keep those three settings identical during A/B comparisons.
+2. `//eb death_spark_style classic`, then `//eb preview spark`. Wait for it to finish. `//eb death_spark_style vivid`, then `//eb preview spark`. Repeat against bright and dark backgrounds. Both must bloom at the same fixed left HP closing foot, after the same red collapse; vivid should look fuller and retain brightness longer. Preview forces spark on, but respects saved alpha (zero still hides it).
+3. In vivid mode compare `//eb death_spark_h_cap 3` with `5`, then `//eb death_spark_v_cap 3` with `7`, previewing after each. At small sizes actual thickness can remain below its cap. Optional size64 makes cap comparisons obvious; first record size and restore it afterward. Do not change alpha/duration between comparisons.
+4. Repeat `//eb preview spark a` using `death_spark_style classic a` / `vivid a`. `//eb preview kill` checks the combined ghost; real small-HP kills check one spark per observed death, stationary center after shake/aggro reflow, and unchanged nonlethal hits. Switch target, zone and restart to check cleanup.
+5. Restore caps5/7 if changed. Leave vivid enabled if preferred. Immediate visual rollback: `//eb death_spark_style classic all`. Full runtime rollback: reinstall the prior complete package and reload; no saved settings reset required.
+
+- Delivery: complete ZIP named `enemybar2-2026-10-19-batch-15-spark-visibility-complete.zip`; archive snapshot comment records its exact Git commit. Package includes existing cumulative guides/tests. Live acceptance remains pending.
+
+---
+
+
 ## Current Development Status — 2026-10-18 (attribution normalization)
 
 - **Repository / branch:** `rerorriM-Mirrorer/enemybar2` / `underbar-glow-2026-10-17`; starting source `987a60a86fe75f48b39fcf484e443ad901da2566`.

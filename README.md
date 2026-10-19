@@ -226,3 +226,9 @@ Run all seven `tests/*_spec.lua` files under Lua5.1 from the repository root. Su
 - Detached ghosts gain a solid white contact hold, soft contracting glow and bright edge flares. Color, alphas, heights, flare width and glow duration are exposed; existing trajectory and fade settings are preserved.
 - Lua 5.1 deterministic tests cover motion, interruptions, snapshot ownership, renderer cleanup and actual command parsing. Live visual testing remains required.
 - User reported all four clients successfully entering and exiting setup with the prior hotfix. Keep that numeric-ID guard. Status-effect review and Trust skin are deferred; distinct full-health finisher is a later experiment.
+
+### 2026-10-19 — Batch15 spark visibility
+
+The new default `death_spark_style vivid` uses fuller arms and a brighter release at the same closing endpoint. Saved alpha, size and duration are retained. Compare `//eb death_spark_style classic` then `//eb preview spark` with `//eb death_spark_style vivid` then the same preview. `classic` restores the original rendering. Optional bar suffixes: t/st/ft/a/all.
+
+`//eb death_spark_h_cap <1..16> [bar]` and `//eb death_spark_v_cap <1..16> [bar]` independently cap horizontal-arm height and vertical-arm width in UI pixels (defaults5/7). Vivid thickness scales with size up to these ceilings; classic retains its original3px ceiling. Omit values to report. Endpoint, death detection, hit effects, delay and total lifetime are unchanged. See TESTING.md for comparison and rollback.

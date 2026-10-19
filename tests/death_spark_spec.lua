@@ -21,7 +21,7 @@ local spark=require('deathSpark')
 local gauge=require('ffxiGauge')
 local now=0
 local function near(a,b) assert(math.abs(a-b)<1e-7,tostring(a)..' ~= '..tostring(b)) end
-local o=settings.snapshot({death_spark_duration=.2,death_spark_alpha=230,death_spark_size=16})
+local o=settings.snapshot({death_spark_style='classic',death_spark_duration=.2,death_spark_alpha=230,death_spark_size=16})
 local clock=function() return now end
 spark.spawn(106,105.5,o,128,clock,.15)
 assert(#all==2 and all[1].config.texture.path:find('sparkle_gain_arm_h',1,true))
@@ -69,4 +69,25 @@ g:destroy()
 now=0;spark.spawn(0,0,o,255,clock,0);spark.spawn(0,0,o,255,clock,.15)
 now=.04;gauge.update_ghosts();gauge.clear_ghosts();gauge.clear_ghosts()
 for _,p in ipairs(all) do assert(p.dead) end
+-- Compare both styles at identical normalized times and endpoint/opacity.
+local function sample(style,hcap,vcap)
+    now=0
+    local options=settings.snapshot({death_spark_style=style,death_spark_h_cap=hcap,
+        death_spark_v_cap=vcap,death_spark_size=64,death_spark_duration=2})
+    local first=#all+1
+    spark.spawn(106,105.5,options,255,clock,.15)
+    options.death_spark_h_cap=1;options.death_spark_v_cap=1
+    now=.55;spark.update()
+    local a,b=all[first],all[first+1]
+    near(a.x+a._w/2,106);near(a.y+a._h/2,105.5)
+    near(b.x+b._w/2,106);near(b.y+b._h/2,105.5)
+    local ht,vt=a._h,b._w
+    now=1.35;spark.update();local alpha=a.a
+    now=2.151;spark.update();assert(a.dead and b.dead)
+    return ht,vt,alpha
+end
+local ch,cv,ca=sample('classic',5,7)
+local vh,vv,va=sample('vivid',5,7)
+near(ch,3);near(cv,3);near(vh,5);near(vv,7);assert(va>ca)
+local hh,vw=sample('vivid',2,11);near(hh,2);near(vw,11)
 print('death_spark_spec: timing, snapshots, endpoint, independent lifecycle and cleanup passed')
