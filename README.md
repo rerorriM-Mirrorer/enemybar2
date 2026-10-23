@@ -1,8 +1,25 @@
 # enemybar2
 
-Native FFXI target, subtarget, focus and aggro health bars for Windower4. Current test build: **Batch14, 1.1.1-a.20261018.14**. Read `TESTING.md` first for installation, current checks and the cumulative test record.
+Native FFXI target, subtarget, focus and aggro health bars for Windower4. Current test build: **Batch18, 1.1.1-a.20261023.18**. Read `TESTING.md` first for installation, current checks and the cumulative test record.
 
 The complete install contains no `data` directory. Overlay its `enemybar2` folder onto the installed addon and reload. Saved settings take precedence; new defaults resolve the supplied `settings(20261017-053248).xml` globals plus Franklet overrides. New positions are computed relative to the client screen; literal uploaded coordinates and character names are not baked in.
+
+## Integrated distance
+
+EnemyBar2 now displays the same raw client distance as DistancePlus Default: sqrt(target.distance), one decimal. The readout is centered in the gauge right tip; action text keeps its row above it. Near <=22 is bright, 22..30 lavender, >30 muted purple; near adds one font-size step. These are proximity bands, not action-range guarantees. Model size is not subtracted. Missing or invalid data shows --.
+
+Main distance activates once for this update. Use `//eb distance off` to hide it persistently, or `//eb distance on [t/st/ft/a/all]` to enable a chosen role. Other bars retain their visibility settings. Per-bar fonts remain. DistancePlus still provides its independent Magic/Ninjutsu/ranged/ability/pet/height features.
+
+### Distance text style and placement
+
+```text
+//eb distance_style distanceplus
+//eb distance_style default
+//eb distance_x 0
+//eb distance_y 0
+```
+
+`distanceplus` (initial choice) uses Verdana11, regular, with a thin outline. `default` follows the bar font, bold/italic, rounded .8x size and2px outline. Close range adds one size step in both. The number has no units suffix. Offsets are pixels relative to the right-tip anchor; positive x moves right, positive y down. Each accepts a final bar role or all; omit the value to report. Offsets -500..500. Animation presets retain these text choices. Check long labels on compact bars for overlap before settling the layout.
 
 ## Start here
 
@@ -232,3 +249,7 @@ Run all seven `tests/*_spec.lua` files under Lua5.1 from the repository root. Su
 The new default `death_spark_style vivid` uses fuller arms and a brighter release at the same closing endpoint. Saved alpha, size and duration are retained. Compare `//eb death_spark_style classic` then `//eb preview spark` with `//eb death_spark_style vivid` then the same preview. `classic` restores the original rendering. Optional bar suffixes: t/st/ft/a/all.
 
 `//eb death_spark_h_cap <1..16> [bar]` and `//eb death_spark_v_cap <1..16> [bar]` independently cap horizontal-arm height and vertical-arm width in UI pixels (defaults5/7). Vivid thickness scales with size up to these ceilings; classic retains its original3px ceiling. Omit values to report. Endpoint, death detection, hit effects, delay and total lifetime are unchanged. See TESTING.md for comparison and rollback.
+
+- **2026-10-23 - Batch17:** Integrate client-reported distance, Default proximity bands and near emphasis; anchor above right bar end with action spacing and one-time main visibility adoption.
+
+- **2026-10-23 - Batch18:** Nest distance in right tip; add regular DistancePlus/inherited text styles and saved x/y offsets.

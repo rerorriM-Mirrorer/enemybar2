@@ -1,5 +1,44 @@
 # TESTING.md
 
+## Current tests - Batch18 nested distance text (2026-10-23)
+
+- User approved public publication of distance-only changes and requested distance nestled at the gauge end, with default bar text and regular DistancePlus text options, without a units marker.
+- Baseline: local cumulative Batch17 bb9cf04; public distance-only Batch17 5f78c03 based on de9ffee. Current root guidance re-read directly from GitHub. Version 1.1.1-a.20261023.18. Distance-only publication uses distance-readout-2026-10-23; cumulative presets remain in the local delivery lineage.
+- Reference image image(20261023-053517).png was inspected from the supplied attachment and appeared black. Exact reference placement therefore cannot be verified. Interpreted nesting as number centered in the gauge right tip, x+width-8 and vertical center y+5.5; measured text height determines top edge. New distance_x/y offsets permit adjustment. Action label retains its separate row above the bar.
+- Verified DistancePlus defaults directly: Verdana11, bold=false, italic=false, 1px outline RGB20/10/12. distance_style distanceplus uses these; default follows bar font/bold/italic with rounded .8x size and original2px outline. Both retain proximity coloring and +1 close emphasis. Missing fields merge to distanceplus/0/0 without touching main font choices. No unit suffix.
+- Commands: //eb distance_style <default|distanceplus> [bar], //eb distance_x <-500..500> [bar], //eb distance_y <-500..500> [bar]. Omit values to report. Positive x moves right, positive y down. all supported; legacy set forms work. These presentation fields are excluded from animation preset resets.
+- Verification: all Lua files parse under Lua5.1; eight offline suites pass in cumulative and public distance builds. Added checks cover captured font flags/outlines, regular vs inherited styles, center anchoring, offsets, validation and preservation across animation resets. Real Windower rendering/in-game acceptance remains pending.
+- Install complete cumulative overlay, reload, check .20261023.18. No settings/data XML shipped. Existing three presets included in download.
+
+### Focused live checks
+
+1. Compare //eb distance_style distanceplus and //eb distance_style default. Verdana should be regular; default should follow the bar font/bold/italic. Only distance changes. No apostrophe or other units suffix should appear.
+2. The number should sit in the right tip. Adjust //eb distance_x -2 or //eb distance_y 1 one at a time if needed; reset each to0. Check close emphasis, three-digit distances, compact bars, long names, action labels, drag, UI resolution changes and reload persistence. Report overlap with long name/HP labels before final acceptance.
+3. Apply animation presets; distance typography/offsets persist. Recheck distance on/off, colors across22/30, missing target, cutscene, zoning and restart cleanup. Screenshot reference is unavailable visually; exact match remains to be confirmed by user.
+
+---
+
+
+## Current tests - Batch17 integrated distance (2026-10-23)
+
+- Repository rerorriM-Mirrorer/enemybar2; public branch distance-readout-2026-10-23 starts at de9ffee (spark-visibility-2026-10-19). Current AGENTS/WORKFLOW/TESTING read directly from GitHub. Version 1.1.1-a.20261023.17.
+- Request: integrate DistancePlus Default into EnemyBar2 near the right bar end, retaining specialized modes in DistancePlus. Read DistancePlus source on Windower-Addons/distanceplus-ffxi-ui and compare raw value and presentation. Distance is sqrt(target.distance), with invalid/negative/nonfinite data displayed as --. No model-size or action-range adjustment.
+- Presentation: one decimal, no suffix; Default bands near <=22 RGB254/251/255, mid <=30 RGB161/159/206, far >30 RGB88/85/132. Near text grows by1px from the rounded .8x bar font size. Number is right-aligned at x+width-4, above the bar at y-font_size+2. Action text reserves its measured width plus8px. Dragging/recovery recomputes anchors. Existing per-bar fonts retained.
+- Main distance activates once on existing configurations using distance_display_revision=1. Later distance off persists. Other-role visibility retained. Commands: //eb distance on/off [t/st/ft/a/all]. Presets preserve visibility. Missing distance displays -- rather than inventing coordinate fallback.
+- Verification: all Lua files parse under Lua5.1, eight mocked suites pass including new distance suite. Covers raw field vs conflicting coordinates, missing/negative/NaN/infinite input, zero, exact22/30 boundaries, font reset, action spacing, moving/resizing UI anchor, visibility and destruction. Additional actual-entrypoint smoke checks verify one-time activation and retained off marker. No live FFXI testing performed.
+- Publication separates distance-only changes from private preset snapshots. Cumulative delivered package additionally retains previously delivered Batch16 presets; public distance branch contains no Cioara XML snapshot. Prior preset publication restriction remains unresolved.
+- Install: complete overlay under enemybar2/; replace matching files then //lua reload enemybar2. No data/settings XML or literal saved coordinates shipped. Status should report .20261023.17.
+
+### Focused live checks
+
+1. Check main readout above right endpoint; compare against //dp default while both track the same target. One decimal should agree except possible update timing. Move across22 and30 boundaries, including slopes and stairs; inspect actual behavior without assuming client-field elevation semantics.
+2. Enable //eb distance on st, ft or a only if desired. Drag each group and change UI resolution. The number follows its own bar; action text and HP/name remain legible. Test long actions and compact widths; exact native font extents/visual placement need in-game acceptance.
+3. Try //eb distance off, reload, and verify it stays off; restore on. Other hidden role settings remain hidden. Test target switching, missing target, cutscenes, zoning, restart/unload and setup mode. Preview modes intentionally hide distance as before.
+4. Recheck ghost/kill/heal/spark and existing presets in the cumulative build. DistancePlus retains specialized modes and has no dependency on EnemyBar2.
+
+---
+
+
 ## Current tests — Batch15 spark visibility (2026-10-19)
 
 - Branch: `spark-visibility-2026-10-19`, baseline `dc55ab2` from the current animation branch. Version `1.1.1-a.20261019.15`.

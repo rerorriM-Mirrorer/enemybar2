@@ -25,7 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 _addon.name = 'enemybar2'
 _addon.author = 'mmckee,akaden,A'
-_addon.version = '1.1.1-a.20261019.15'
+_addon.version = '1.1.1-a.20261023.18'
 _addon.language = 'English'
 _addon.commands = {'enemybar','eb'}
 
@@ -38,6 +38,7 @@ packets = require('packets')
 require('bars')
 require('actionTracking')
 local bar_layout = require('barLayout')
+local distance_display = require('distanceDisplay')
 local frame_names = {'target','subtarget','focustarget','aggro'}
 local last_ui_width, last_ui_height
 local animation_settings=require("animationSettings")
@@ -158,7 +159,7 @@ function update_bar(bar, target, show)
         if target ~= nil and show and not state.in_cs then     
             bars.show(bar)
 
-            local dist = get_distance(windower.ffxi.get_mob_by_target('me'), target)
+            local dist = get_distance(nil, target)
 
             local t = windower.ffxi.get_mob_by_target('t')
             local st = windower.ffxi.get_mob_by_target('st')
@@ -322,9 +323,8 @@ function get_tint_by_target(target)
 end
 
 function get_distance(player, target)
-    local dx = player.x-target.x
-    local dy = player.y-target.y
-    return math.sqrt(dx*dx + dy*dy)
+    -- Use the same client-reported distance as DistancePlus Default.
+    return distance_display.value(target)
 end
 
 function looking_at(a, b)
@@ -518,7 +518,7 @@ function handle_command(c, ...)
     end
     -- Short forms use values first, with an optional frame last. Legacy set
     -- syntax still uses setting/frame/values. Keep one validation path.
-    local arity={pos=2,color=3,trail_color=3,skin=1,width=1,font=1,font_size=1,count=1,
+    local arity={distance_style=1,distance_x=1,distance_y=1,pos=2,color=3,trail_color=3,skin=1,width=1,font=1,font_size=1,count=1,
         stack_dir=1,stack_padding=1,show=1,bold=1,italic=1,bounds=1,locked=1,
         background_alpha=1,animation_duration=1,damage_trail=1,trail_delay=1,trail_duration=1,
         show_target=1,show_action=1,show_dist=1,show_debuff=1,show_target_icon=1,
@@ -586,6 +586,8 @@ function handle_command(c, ...)
             windower.add_to_chat(207,string.format('  underbar glow %s: alpha %g, height %gpx; flare alpha %g, height %gpx, width %gpx',
                 tostring(f.underbar_glow),f.underbar_glow_alpha,f.underbar_glow_height,
                 f.underbar_flare_alpha,f.underbar_flare_height,f.underbar_flare_width))
+            windower.add_to_chat(207,string.format('  distance: %s; style %s; offset %g/%gpx',
+                tostring(f.show_dist),f.distance_style or 'distanceplus',f.distance_x or 0,f.distance_y or 0))
             windower.add_to_chat(207,string.format('  ghost: lift %g up/%g right in %gs, hover %gs, drift %g up/%g right in %gs; alpha %g, period %g',
                 f.ghost_lift_up,f.ghost_lift_right,f.ghost_lift_duration,f.ghost_hover_duration,
                 f.ghost_drift_up,f.ghost_drift_right,f.ghost_fade_duration,f.ghost_alpha,f.ghost_period))
@@ -642,6 +644,14 @@ function handle_command(c, ...)
             else
                 windower.add_to_chat(123, 'EnemyBar: not enough arguments for "'..setting..'"')
             end
+        elseif setting=='distance_style' then
+            local value=args[3] and args[3]:lower()
+            if value=='default' or value=='distanceplus' then set_setting(bar,setting,value)
+            else windower.add_to_chat(123,'EnemyBar: distance_style default/distanceplus') end
+        elseif setting=='distance_x' or setting=='distance_y' then
+            local value=tonumber(args[3])
+            if value and value>=-500 and value<=500 then set_setting(bar,setting,value)
+            else windower.add_to_chat(123,'EnemyBar: '..setting..' must be -500..500 pixels') end
         elseif setting == 'skin' then
             local skin = args[3] and args[3]:lower()
             if skin == 'ffxi' or skin == 'classic' then
@@ -978,6 +988,11 @@ end
 -- A: adopt the requested native subtarget/focus presets once for existing
 -- installs. A saved revision marker preserves later user color/skin edits.
 local migrated=false
+if settings_old.target_bar and not settings_old.target_bar.distance_display_revision then
+    settings.target_bar.show_dist=true
+    migrated=true
+end
+settings.target_bar.distance_display_revision=1
 for _,name in ipairs({'subtarget','focustarget'}) do
     local old=settings_old[name..'_bar']
     local frame=settings[name..'_bar']

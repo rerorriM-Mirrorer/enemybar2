@@ -343,6 +343,8 @@ local preset={
 }
 local animation_settings=require("animationSettings")
 for _,frame in pairs(preset) do
+    frame.distance_style='distanceplus'
+    frame.distance_x=0;frame.distance_y=0
     local merged=animation_settings.snapshot(frame)
     for key,value in pairs(merged) do if frame[key]==nil then frame[key]=value end end
 end

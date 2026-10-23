@@ -1,5 +1,6 @@
 local ffxi_gauge = require('ffxiGauge')
 local health_motion = require('healthMotion')
+local distance_display = require('distanceDisplay')
 
 -- Meta class
 bars = {x_res = windower.get_windower_settings().ui_x_res,y_res = windower.get_windower_settings().ui_y_res}
@@ -25,6 +26,9 @@ function bars.new(bar_settings, main_bar)
    o.color = bar_settings.color
    o.font = bar_settings.font
    o.font_size = bar_settings.font_size
+   o.distance_style = bar_settings.distance_style or 'distanceplus'
+   o.distance_x = bar_settings.distance_x or 0
+   o.distance_y = bar_settings.distance_y or 0
    o.show_dist = bar_settings.show_dist
    o.show_target = bar_settings.show_target
    o.show_target_icon = bar_settings.show_target_icon
@@ -137,12 +141,14 @@ function bars.initialize(o)
 			flags = {bold=o.bold,draggable=false},
 			bg = {visible=false}
 		})
-	o.distance_text = texts.new('${dist|(0.0)}\'', {
-			pos = {x=0,y=0},
-			text = { size=o.font_size*0.8,font=o.font,stroke={width=2,alpha=180,red=stroke,green=stroke,blue=stroke}},
-			flags = {bold=o.bold,draggable=false,right=true},
-			bg = {visible=false}
-		})
+    o.distance_appearance=distance_display.text_style(o)
+    local d=o.distance_appearance
+    o.distance_text = texts.new('${dist|(--)}', {
+            pos={x=0,y=0},
+            text={size=d.size,font=d.font,stroke=d.stroke},
+            flags={bold=d.bold,italic=d.italic,draggable=false,right=true},
+            bg={visible=false}
+        })
 	o.target_status_image = images.new({
 			pos = {x=0,y=0},
 			visible = true,
@@ -170,8 +176,32 @@ function bars.move(o,x,y)
 	o.action_text:pos(-(bars.x_res-(x+o.width-math.floor(o.width/100))),y-o.font_size+2)
 	o.attention_arrow_image:pos(x+o.width+8, y)
 	o.target_name_text:pos(x+o.width+24,y-math.floor(o.font_size/2)+2)
-	o.distance_text:pos(-(bars.x_res-(x-20)),y-math.floor(o.font_size/2)+4)
+	bars.position_distance(o)
 	o.target_status_image:pos(x+o.width + 4, y)
+end
+
+-- Nest the number in the gauge's right tip. Use actual text height so both
+-- font choices stay centered; offsets are relative to this moving anchor.
+function bars.position_distance(o)
+    local right=o.x+o.width-8+o.distance_x
+    local _,height=o.distance_text:extents()
+    height=height or o.distance_appearance.size
+    o.distance_text:pos(right-bars.x_res,o.y+5.5-height/2+o.distance_y)
+    -- Action text keeps its own row above the bar.
+    local action_right=o.x+o.width-math.floor(o.width/100)
+    o.action_text:pos(action_right-bars.x_res,o.y-o.font_size+2)
+end
+
+function bars.update_distance(o,value)
+    o.distance_value=value
+    o.distance_text.dist=value and string.format('%.1f',value) or '--'
+    local base_size=o.distance_appearance.size
+    local color,size=distance_display.style(value,base_size)
+    o.distance_text:color(color[1],color[2],color[3])
+    if o.distance_font_size~=size then
+        o.distance_text:size(size);o.distance_font_size=size
+    end
+    bars.position_distance(o)
 end
 
 function bars.show(o)
@@ -252,7 +282,7 @@ function bars.update_target(o, name, hpp, dist, target_type, target_id)
     o.target_id = identity
     bars.refresh_text(o)
 
-	o.distance_text.dist = string.format('%.1f', dist)
+	bars.update_distance(o,dist)
 
 	if target_type == 1 and o.show_target_icon then
 		o.target_indicator_image:color(255,100,100,255)
