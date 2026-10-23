@@ -33,7 +33,12 @@ local b=bars.new(f,true)
 bars.update_target(b,'Target',80,22,1,123)
 assert(b.distance_text.dist=='22.0' and b.distance_text.font_size==12)
 assert(b.distance_text.rgb[1]==254 and b.distance_text.rgb[2]==251)
-assert(b.distance_text.x==-488 and b.distance_text.y==499.5)
+local normal_width=#'22.0'*11*.6
+local near_width=#'22.0'*12*.6
+local normal_center=-488-normal_width/2
+assert(math.abs((b.distance_text.x-near_width/2)-(normal_center+2))<1e-9)
+assert(b.distance_text.y==500.5)
+assert(b.distance_text.y+12/2==506.5)
 assert(b.distance_text.settings.text.font=='Verdana')
 assert(not b.distance_text.settings.flags.bold and not b.distance_text.settings.flags.italic)
 assert(b.distance_text.settings.text.stroke.width==1)
@@ -61,6 +66,13 @@ bars.hide(b);assert(not b.distance_text.shown)
 b.show_dist=false;bars.move(b,200,300)
 assert(b.action_text.x==200+400-4-960)
 bars.show(b);assert(not b.distance_text.shown)
+b.distance_near=10;b.distance_far=15
+bars.update_distance(b,12)
+assert(b.distance_text.font_size==11 and b.distance_text.rgb[1]==161)
+bars.update_distance(b,16)
+assert(b.distance_text.rgb[1]==88)
+bars.update_distance(b,10)
+assert(b.distance_text.font_size==12)
 bars.destroy(b)
 f.distance_style='default';f.bold=true;f.italic=true;f.font='Arial'
 local regular=bars.new(f,true)

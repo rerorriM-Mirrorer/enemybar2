@@ -26,6 +26,10 @@ function bars.new(bar_settings, main_bar)
    o.color = bar_settings.color
    o.font = bar_settings.font
    o.font_size = bar_settings.font_size
+   o.distance_near = bar_settings.distance_near or 22
+   o.distance_far = bar_settings.distance_far or 30
+   o.distance_close_x = bar_settings.distance_close_x or 2
+   o.distance_close_y = bar_settings.distance_close_y or 1
    o.distance_style = bar_settings.distance_style or 'distanceplus'
    o.distance_x = bar_settings.distance_x or 0
    o.distance_y = bar_settings.distance_y or 0
@@ -184,9 +188,15 @@ end
 -- font choices stay centered; offsets are relative to this moving anchor.
 function bars.position_distance(o)
     local right=o.x+o.width-8+o.distance_x
-    local _,height=o.distance_text:extents()
+    local width,height=o.distance_text:extents()
     height=height or o.distance_appearance.size
-    o.distance_text:pos(right-bars.x_res,o.y+5.5-height/2+o.distance_y)
+    -- Compensate half of the extra width: the larger glyphs expand about
+    -- the normal text center instead of growing entirely toward the left.
+    if o.distance_close then
+        right=right+(width-(o.distance_base_width or width))/2+o.distance_close_x
+    end
+    local nudge_y=o.distance_close and o.distance_close_y or 0
+    o.distance_text:pos(right-bars.x_res,o.y+5.5-height/2+o.distance_y+nudge_y)
     -- Action text keeps its own row above the bar.
     local action_right=o.x+o.width-math.floor(o.width/100)
     o.action_text:pos(action_right-bars.x_res,o.y-o.font_size+2)
@@ -194,12 +204,19 @@ end
 
 function bars.update_distance(o,value)
     o.distance_value=value
-    o.distance_text.dist=value and string.format('%.1f',value) or '--'
+    local label=value and string.format('%.1f',value) or '--'
+    o.distance_text.dist=label
     local base_size=o.distance_appearance.size
-    local color,size=distance_display.style(value,base_size)
+    local color,size,close=distance_display.style(value,base_size,o.distance_near,o.distance_far)
+    o.distance_close=close
     o.distance_text:color(color[1],color[2],color[3])
-    if o.distance_font_size~=size then
-        o.distance_text:size(size);o.distance_font_size=size
+    -- Measure the base label only when its characters or emphasis changes.
+    -- No repeated font-size toggles are needed while the readout is unchanged.
+    if o.distance_label~=label or o.distance_font_size~=size then
+        o.distance_text:size(base_size)
+        o.distance_base_width=o.distance_text:extents()
+        if size~=base_size then o.distance_text:size(size) end
+        o.distance_font_size=size;o.distance_label=label
     end
     bars.position_distance(o)
 end

@@ -25,7 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 _addon.name = 'enemybar2'
 _addon.author = 'mmckee,akaden,A'
-_addon.version = '1.1.1-a.20261023.18'
+_addon.version = '1.1.1-a.20261023.19'
 _addon.language = 'English'
 _addon.commands = {'enemybar','eb'}
 
@@ -470,7 +470,7 @@ function handle_command(c, ...)
         if hpp then windower.add_to_chat(207,'EnemyBar: '..name..' HP preview '..hpp..'% (8 seconds)') end
         return
     end
-    local aliases={targetof='show_target',targeticon='show_target_icon',action='show_action',
+    local aliases={near='distance_near',far='distance_far',targetof='show_target',targeticon='show_target_icon',action='show_action',
         distance='show_dist',debuffs='show_debuff',fontsize='font_size',spacing='stack_padding',edit='setup',move='setup'}
     c=aliases[c] or c
     if c=='hide' then return handle_command('set','show',args[1] or 't','off') end
@@ -518,7 +518,7 @@ function handle_command(c, ...)
     end
     -- Short forms use values first, with an optional frame last. Legacy set
     -- syntax still uses setting/frame/values. Keep one validation path.
-    local arity={distance_style=1,distance_x=1,distance_y=1,pos=2,color=3,trail_color=3,skin=1,width=1,font=1,font_size=1,count=1,
+    local arity={distance_near=1,distance_far=1,distance_close_x=1,distance_close_y=1,distance_style=1,distance_x=1,distance_y=1,pos=2,color=3,trail_color=3,skin=1,width=1,font=1,font_size=1,count=1,
         stack_dir=1,stack_padding=1,show=1,bold=1,italic=1,bounds=1,locked=1,
         background_alpha=1,animation_duration=1,damage_trail=1,trail_delay=1,trail_duration=1,
         show_target=1,show_action=1,show_dist=1,show_debuff=1,show_target_icon=1,
@@ -588,6 +588,8 @@ function handle_command(c, ...)
                 f.underbar_flare_alpha,f.underbar_flare_height,f.underbar_flare_width))
             windower.add_to_chat(207,string.format('  distance: %s; style %s; offset %g/%gpx',
                 tostring(f.show_dist),f.distance_style or 'distanceplus',f.distance_x or 0,f.distance_y or 0))
+            windower.add_to_chat(207,string.format('  distance bands: near <=%g, mid <=%g; near nudge %g/%gpx',
+                f.distance_near or 22,f.distance_far or 30,f.distance_close_x or 2,f.distance_close_y or 1))
             windower.add_to_chat(207,string.format('  ghost: lift %g up/%g right in %gs, hover %gs, drift %g up/%g right in %gs; alpha %g, period %g',
                 f.ghost_lift_up,f.ghost_lift_right,f.ghost_lift_duration,f.ghost_hover_duration,
                 f.ghost_drift_up,f.ghost_drift_right,f.ghost_fade_duration,f.ghost_alpha,f.ghost_period))
@@ -648,7 +650,19 @@ function handle_command(c, ...)
             local value=args[3] and args[3]:lower()
             if value=='default' or value=='distanceplus' then set_setting(bar,setting,value)
             else windower.add_to_chat(123,'EnemyBar: distance_style default/distanceplus') end
-        elseif setting=='distance_x' or setting=='distance_y' then
+        elseif setting=='distance_near' or setting=='distance_far' then
+            local value=tonumber(args[3])
+            local valid=value and value>=0 and value<=1000
+            for _,name in ipairs(frame_names) do
+                if valid and (bar=='all' or bar==name) then
+                    local f=settings[name..'_bar']
+                    valid=setting=='distance_near' and value<=(f.distance_far or 30) or
+                        setting=='distance_far' and value>=(f.distance_near or 22)
+                end
+            end
+            if valid then set_setting(bar,setting,value)
+            else windower.add_to_chat(123,'EnemyBar: bands require 0 <= near <= far <= 1000; no bars changed') end
+        elseif setting=='distance_x' or setting=='distance_y' or setting=='distance_close_x' or setting=='distance_close_y' then
             local value=tonumber(args[3])
             if value and value>=-500 and value<=500 then set_setting(bar,setting,value)
             else windower.add_to_chat(123,'EnemyBar: '..setting..' must be -500..500 pixels') end

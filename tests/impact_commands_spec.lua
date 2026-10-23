@@ -177,6 +177,23 @@ assert(settings.target_bar.distance_x==-4 and settings.subtarget_bar.distance_y=
 handle_command('defaults','animations','all')
 assert(settings.target_bar.distance_style=='distanceplus' and settings.target_bar.distance_x==-4)
 
+handle_command('near','18','all')
+handle_command('far','28','all')
+assert(settings.target_bar.distance_near==18 and settings.aggro_bar.distance_far==28)
+handle_command('distance_close_x','3')
+handle_command('distance_close_y','2')
+assert(settings.target_bar.distance_close_x==3 and settings.target_bar.distance_close_y==2)
+local before=saved
+handle_command('near','29','all');handle_command('far','17','all')
+handle_command('near','nan');handle_command('far','1001')
+assert(saved==before and settings.target_bar.distance_near==18)
+-- Validate all selected frames before mutating any of them.
+settings.aggro_bar.distance_far=20
+handle_command('near','25','all')
+assert(saved==before and settings.target_bar.distance_near==18)
+handle_command('defaults','animations','all')
+assert(settings.target_bar.distance_near==18 and settings.target_bar.distance_close_x==3)
+
 handle_command('restart');handle_command('restart');handle_command('unload')
 assert(lifecycle_cleaned==1 and #lifecycle_commands==1 and lifecycle_commands[1]=='lua reload enemybar2')
 print('impact_commands_spec: defaults, forms, validation, reports and preserved tuning passed')

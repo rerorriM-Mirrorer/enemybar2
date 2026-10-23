@@ -5,12 +5,13 @@ function distance.value(target)
     if type(squared)~='number' or squared~=squared or squared<0 or squared==math.huge then return nil end
     return math.sqrt(squared)
 end
-function distance.style(value,base_size)
-    local close=value and value<=22
+function distance.style(value,base_size,near,far)
+    near,far=near or 22,far or 30
+    local close=value and value<=near
     local color={254,251,255}
-    if value and value>30 then color={88,85,132}
-    elseif value and value>22 then color={161,159,206} end
-    return color,base_size+(close and 1 or 0)
+    if value and value>far then color={88,85,132}
+    elseif value and value>near then color={161,159,206} end
+    return color,base_size+(close and 1 or 0),close
 end
 function distance.text_style(bar)
     if bar.distance_style=='default' then

@@ -1,5 +1,23 @@
 # TESTING.md
 
+## Current tests - Batch19 centered close emphasis and bands (2026-10-23)
+
+- Request: enlarge near-band distance about its center with a small right/down nudge; expose near/far cutoffs in EnemyBar2. User reports Batch18 works great; that is live acceptance of the prior readout, not Batch19.
+- Baseline public 0ab7f065c82d843cb2594081cd13ab972ad9a292, local cumulative b049ee8. Current GitHub AGENTS/WORKFLOW/TESTING read before editing. Working branch distance-readout-2026-10-23; version1.1.1-a.20261023.19. Cumulative presets retained in local delivery lineage.
+- The drawing primitive remains right-justified for consistent bar attachment, but near enlargement measures normal and enlarged glyph widths and compensates half the difference. Vertical placement already centers measured text height. The enlarged number therefore grows around its normal center, then nudges +2px right/+1px down. Normal measurement is cached until the formatted label or emphasis state changes; unchanged readouts do not repeatedly resize the font.
+- Per-bar defaults distance_near22/distance_far30, distance_close_x2/distance_close_y1. //eb near <yalms> [bar] and far aliases map to distance_near/far. Accept0..1000 with near<=far; all-frame validation precedes mutation. //eb distance_close_x/y <-500..500> [bar] changes the near-only nudge; zero removes it. General distance_x/y still offset both states. Omit values to report. All fields save normally and survive animation preset resets.
+- Verification: Lua5.1 parsing and all eight mocked suites pass in cumulative and distance-only builds. Tests exercise measured center plus nudge, vertical center, exact boundaries, custom bands, invalid/inverted/NaN inputs, atomic all-bar rejection, aliases and preserved settings after animation reset. No live FFXI test performed for this revision.
+
+### Focused live checks
+
+1. Reload; status .20261023.19. Move across22 yalms slowly and compare normal/enlarged text: expansion should be balanced around the original number center, followed by a2px right/1px down nudge. Test both distance styles and two-/three-digit readouts; exact Windows font rendering remains a live check.
+2. //eb distance_close_x 0 and distance_close_y0 remove the near-only nudge; restore2/1 if preferred. General distance_x/y remain independent. Test dragging, UI resize, target switching and reload persistence.
+3. //eb near 18; //eb far 28. Check bright/enlarged <=18, lavender through28, muted beyond28. Restore22/30. Append all for every frame. Near above far or far below near must leave every selected frame unchanged.
+4. Recheck previous readout placement, units-free formatting, hidden roles, missing target, and existing animation/cleanup smoke cases. Presets must retain bands and distance nudges.
+
+---
+
+
 ## Current tests - Batch18 nested distance text (2026-10-23)
 
 - User approved public publication of distance-only changes and requested distance nestled at the gauge end, with default bar text and regular DistancePlus text options, without a units marker.

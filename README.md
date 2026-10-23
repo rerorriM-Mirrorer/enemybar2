@@ -1,6 +1,6 @@
 # enemybar2
 
-Native FFXI target, subtarget, focus and aggro health bars for Windower4. Current test build: **Batch18, 1.1.1-a.20261023.18**. Read `TESTING.md` first for installation, current checks and the cumulative test record.
+Native FFXI target, subtarget, focus and aggro health bars for Windower4. Current test build: **Batch19, 1.1.1-a.20261023.19**. Read `TESTING.md` first for installation, current checks and the cumulative test record.
 
 The complete install contains no `data` directory. Overlay its `enemybar2` folder onto the installed addon and reload. Saved settings take precedence; new defaults resolve the supplied `settings(20261017-053248).xml` globals plus Franklet overrides. New positions are computed relative to the client screen; literal uploaded coordinates and character names are not baked in.
 
@@ -20,6 +20,19 @@ Main distance activates once for this update. Use `//eb distance off` to hide it
 ```
 
 `distanceplus` (initial choice) uses Verdana11, regular, with a thin outline. `default` follows the bar font, bold/italic, rounded .8x size and2px outline. Close range adds one size step in both. The number has no units suffix. Offsets are pixels relative to the right-tip anchor; positive x moves right, positive y down. Each accepts a final bar role or all; omit the value to report. Offsets -500..500. Animation presets retain these text choices. Check long labels on compact bars for overlap before settling the layout.
+
+### Distance bands and centered emphasis
+
+```text
+//eb near 22
+//eb far 30
+//eb distance_close_x 2
+//eb distance_close_y 1
+```
+
+Near sets the bright/enlarged cutoff; far sets the upper edge of the middle band. Valid0..1000, near <= far. Aliases distance_near/distance_far and legacy set syntax also work. Each command takes an optional final bar role or all; omit its value to report. Changes save and survive animation preset resets.
+
+The enlarged text grows about its normal measured center, then moves2px right/1px down. Near-only distance_close_x/y change that nudge (-500..500); use0/0 for centered growth without a nudge. General distance_x/y still move both states together.
 
 ## Start here
 
@@ -253,3 +266,5 @@ The new default `death_spark_style vivid` uses fuller arms and a brighter releas
 - **2026-10-23 - Batch17:** Integrate client-reported distance, Default proximity bands and near emphasis; anchor above right bar end with action spacing and one-time main visibility adoption.
 
 - **2026-10-23 - Batch18:** Nest distance in right tip; add regular DistancePlus/inherited text styles and saved x/y offsets.
+
+- **2026-10-23 - Batch19:** Center near-band text growth with saved right/down nudges; add configurable near/far bands and atomic validation.
