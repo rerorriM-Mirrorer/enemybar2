@@ -15,7 +15,8 @@ function string:split(delimiter)
 end
 local logs={}
 local channels={}
-windower={add_to_chat=function(channel,s) logs[#logs+1]=s;channels[#channels+1]=channel end}
+windower={add_to_chat=function(channel,s) logs[#logs+1]=s;channels[#channels+1]=channel end,
+get_windower_settings=function() return {ui_x_res=1280,ui_y_res=720} end}
 package.preload.chat=function()
     function string:color(id) return '['..id..']'..self end
     return {}
@@ -30,6 +31,9 @@ local source=assert(io.open('enemybar2.lua')):read('*a')
 local first=assert(source:find('local function valid_rgb',1,true))
 local last=assert(source:find("windower.register_event('prerender'",first,true))
 local prelude=[[local frame_names={'target','subtarget','focustarget','aggro'}
+local default_bar_position=function(name,frame)
+    return require('factoryLayout').position(name,frame,windower.get_windower_settings())
+end
 local animation_settings=require('animationSettings')
 local animation_preview={start=function(...) preview_args={...} end,clear=function() end}
 local help_text=require('helpText')
@@ -196,6 +200,13 @@ assert(saved==before and settings.target_bar.distance_near==18)
 handle_command('defaults','animations','all')
 assert(settings.target_bar.distance_near==18 and settings.target_bar.distance_close_x==3)
 
+-- Opt-in layout restores the factory arrangement without replacing custom widths.
+local previous_width=settings.target_bar.width
+handle_command('defaults','layout','all')
+assert(settings.target_bar.width==previous_width and settings.target_bar.pos.y==80)
+assert(settings.target_bar.pos.x==math.floor((1280-previous_width)/2))
+assert(settings.subtarget_bar.pos.x==430 and settings.subtarget_bar.pos.y==100)
+assert(settings.aggro_bar.pos.x==840 and settings.aggro_bar.pos.y==100)
 handle_command('restart');handle_command('restart');handle_command('unload')
 assert(lifecycle_cleaned==1 and #lifecycle_commands==1 and lifecycle_commands[1]=='lua reload enemybar2')
 print('impact_commands_spec: defaults, forms, validation, reports and preserved tuning passed')
