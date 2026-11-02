@@ -1,5 +1,5 @@
--- A: defaults resolved from settings(20261017-053248).xml global + Franklet.
--- Saved settings take precedence; screen-relative positions are supplied at load.
+-- A: factory appearance follows Cioara's 2026-11-02 effective settings.
+-- Only the initial position is screen-relative; saved personal choices always win.
 return function()
 local preset={
     aggro_bar={
@@ -47,7 +47,7 @@ local preset={
         italic=true,
         locked=false,
         low_hp_pulse=true,
-        pulse_period=0.2,
+        pulse_period=0.3,
         shake_decay=0.5,
         shake_hold=0.05,
         shake_horizontal=0,
@@ -61,10 +61,10 @@ local preset={
         show_action=false,
         show_debuff=false,
         show_dist=false,
-        show_target=false,
+        show_target=true,
         show_target_icon=false,
         skin='ffxi',
-        stack_dir='up',
+        stack_dir='down',
         stack_padding=20,
         super_settle='small',
         text_duration=0.22,
@@ -84,7 +84,7 @@ local preset={
         underbar_glow_alpha=80,
         underbar_glow_height=3,
         underbar_period=0.1,
-        width=100,
+        width=200,
     },
     focustarget_bar={
         animation_duration=0.18,
@@ -131,7 +131,7 @@ local preset={
         locked=false,
         low_hp_pulse=true,
         native_style_revision=1,
-        pulse_period=0.2,
+        pulse_period=0.3,
         shake_decay=0.5,
         shake_hold=0.05,
         shake_horizontal=0,
@@ -214,7 +214,7 @@ local preset={
         locked=false,
         low_hp_pulse=true,
         native_style_revision=1,
-        pulse_period=0.2,
+        pulse_period=0.3,
         shake_decay=0.5,
         shake_hold=0.05,
         shake_horizontal=0,
@@ -250,7 +250,7 @@ local preset={
         underbar_glow_alpha=80,
         underbar_glow_height=3,
         underbar_period=0.1,
-        width=200,
+        width=400,
     },
     target_bar={
         animation_duration=3,
@@ -276,7 +276,7 @@ local preset={
         ghost_alpha=100,
         ghost_contact_duration=0,
         ghost_drift_right=1,
-        ghost_drift_up=-1,
+        ghost_drift_up=-2,
         ghost_fade_duration=1,
         ghost_flare_alpha=200,
         ghost_flare_height=60,
@@ -294,7 +294,7 @@ local preset={
         ghost_hover_duration=0,
         ghost_lift_duration=0.9,
         ghost_lift_right=0,
-        ghost_lift_up=0,
+        ghost_lift_up=1,
         ghost_period=0.1,
         heal_duration=0.35,
         healing_effect=true,
@@ -316,7 +316,7 @@ local preset={
         show_action=false,
         show_debuff=false,
         show_dist=true,
-        show_target=false,
+        show_target=true,
         show_target_icon=false,
         skin='ffxi',
         stack_dir='up',
@@ -338,7 +338,7 @@ local preset={
         underbar_glow_alpha=50,
         underbar_glow_height=33,
         underbar_period=0.1,
-        width=400,
+        width=800,
     },
 }
 local animation_settings=require("animationSettings")
@@ -350,5 +350,9 @@ for _,frame in pairs(preset) do
     local merged=animation_settings.snapshot(frame)
     for key,value in pairs(merged) do if frame[key]==nil then frame[key]=value end end
 end
+-- Cioara's main readout uses the native bar font and a left/below offset.
+preset.target_bar.distance_style='default'
+preset.target_bar.distance_x=-24
+preset.target_bar.distance_y=9
 return preset
 end
