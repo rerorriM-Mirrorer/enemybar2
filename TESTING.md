@@ -1,5 +1,27 @@
 # TESTING.md
 
+# Current testing batch — Batch20 Cioara appearance and high layout (2026-11-02)
+
+- **Repository/branch:** `rerorriM-Mirrorer/enemybar2` / `cioara-appearance-2026-11-02`; forked from `distance-readout-2026-10-23` at `e4e13c024a171e6180de0603c9f9bde32e96311e`. The branch holds unverified development work; `master` stays unchanged.
+- **User-supplied reference:** `settings(20261102-134803).xml`. Cioara's effective settings were read by merging the XML `global` frame sections with the `cioara` overrides. No character XML, data directory or literal character names are shipped as saved config.
+- **Appearance:** main target width800, Arial14 bold/italic, ffxi skin, show target-of-target and distance. Distance `default` with x-24/y+9; color, trail/underbar glow, healing, shake, death spark and fade settings remain those of the effective reference. Subtarget width400; focus width250; aggro width200, target-of-target on, stacking down by20. All secondary roles use Cioara's 0.3s pulse; main uses0.25s. Existing character saves remain authoritative.
+- **Ghost correction:** main and observed finishing ghosts lift 1px upward over0.9s, then descend 2px during1s fade. Same horizontal drift, fading, height fluctuation and attached flares; underlying ghost motion/rendering code unchanged. Closing glint stays at captured left endpoint. More fluttering is **deferred**.
+- **Factory geometry (3840x2160 UI):** main x1520/y80 (centered), subtarget x1710/y100, aggro x2120/y100, focus x1780/y1800. UI-relative centering/reflow is resolved at first settings creation; main and related bar widths are capped only when too large for tiny clients. Existing saved positions are never silently replaced.
+- **Opt-in adoption:** `//eb defaults layout` restores the arrangement for all groups, `//eb defaults layout t` for main only. Neither changes personal widths, colors or animation settings. The existing `//eb defaults animations` action retains its animation-only behavior. `//eb resetpos` still centers a selection; it does not restore the factory arrangement.
+- **Code:** `defaultPreset.lua`, `factoryLayout.lua` (new), `enemybar2.lua`, `helpText.lua`, `README.md` and focused additions to `tests/entrypoint_spec.lua`, `tests/impact_commands_spec.lua`, `tests/factory_layout_spec.lua` (new). Version `1.1.1-a.20261102.20`.
+- **Verification status:** source and command paths reviewed statically. Tests added for both 3840x2160 and 1280x720 factory positions, ghost height samples, the four bar presets, and explicit layout adoption. Lua5.1/Windower runtime and live visual checks are **not yet verified** in this authoring session. Prior tests remain historical, not new results.
+
+### Batch20 live checks
+
+1. On a fresh install (back up and temporarily isolate the existing addon `data` folder), confirm main centered high, sub/aggro just below and to the right, and focus lower center. Test a 3840x2160 client, a 1280x720 window and a small laptop client; confirm no bar clips after zoning/resolution changes.
+2. On existing Cioara, reload and verify all saved bars remain unchanged. Run `//eb defaults layout t`: only the target position should move to the centered top. Run `//eb defaults layout`: all four bar groups take the new factory positions, retaining their existing widths, colors, text and animation tuning. Restart and verify persistence. Compare `resetpos` separately.
+3. Test `//eb preview ghost`, `//eb preview kill` and observed killing hits. Both ghost types should shift up only1px and then travel down2px, with no extra y movement of the detached chunk. Vertical glow-height flicker should remain; glint stays anchored at its original endpoint. Compare upper/lower bright backgrounds for rectangular flare artifacts.
+4. Recheck `//eb preview hp 5`, `preview heal`, `preview spark`, aggro row stacking/downward clipping, target switching, target-of-target labels, distance readout with main font and x-24/y+9 offset, dragging and Ctrl-grid snap. Verify existing animations, status/help formatting, and restart/unload behavior.
+5. After visual acceptance, explore a flutterier opacity/edge animation as **a separate batch**; do not conflate it with this spatial correction.
+
+---
+
+
 ## Current tests - Batch19 centered close emphasis and bands (2026-10-23)
 
 - Request: enlarge near-band distance about its center with a small right/down nudge; expose near/far cutoffs in EnemyBar2. User reports Batch18 works great; that is live acceptance of the prior readout, not Batch19.
