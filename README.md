@@ -1,8 +1,16 @@
 # enemybar2
 
-Native FFXI target, subtarget, focus and aggro health bars for Windower4. Current test build: **Batch19, 1.1.1-a.20261023.19**. Read `TESTING.md` first for installation, current checks and the cumulative test record.
+Native FFXI target, subtarget, focus and aggro health bars for Windower4. Current working test build: **Batch20, 1.1.1-a.20261102.20**. Read `TESTING.md` first for installation, current checks and the cumulative test record.
 
-The complete install contains no `data` directory. Overlay its `enemybar2` folder onto the installed addon and reload. Saved settings take precedence; new defaults resolve the supplied `settings(20261017-053248).xml` globals plus Franklet overrides. New positions are computed relative to the client screen; literal uploaded coordinates and character names are not baked in.
+The complete install contains no `data` directory. Overlay its `enemybar2` folder onto the installed addon and reload. Existing saved character settings always take precedence. Fresh-install defaults now follow Cioara's supplied 2026-11-02 effective appearance; coordinates are derived from each client's UI dimensions, not copied from the uploaded character-specific XML.
+
+## New factory appearance and layout (Batch20)
+
+At 3840x2160, the 800px main target gauge sits at x1520/y80 (centered horizontally), subtarget 400px at x1710/y100, aggro 200px at x2120/y100 stacking down by 20px, and focus 250px at x1780/y1800. The focus position is 5/6 of the UI height. Other top positions use the same small pixel offsets from the main center, including the aggro bar's rightward placement. Smaller client windows derive their own x coordinates; initial widths are capped to leave a 40px margin when necessary.
+
+All four bars retain the FFXI skin and their existing role colors. Main uses Arial14 bold/italic, `distance_style default` with offsets -24/+9, target-of-target visible, and all of Cioara's large underbar, trail, flash and healing settings. Focus/subtarget/aggro retain their own inherited appearance and periods (.3s shared pulse). New ghosts lift **1px up** during .9s, then drift **2px down** during the 1s fade, retaining horizontal drift, opacity flutter, glow and flares. Both large ghost hits and small observed finishing-hit chunks use this main-bar motion. The closing death sparkle remains fixed at the original left endpoint.
+
+For an existing character, reloading alone will **not** change saved positions, widths, fonts, or animation tuning. To opt into only the new positions, run `//eb defaults layout` (all four bars) or `//eb defaults layout t` (main bar only). This saves positions, preserving widths, colors, distance and animations. `//eb resetpos` is different: it centers a selection on screen, not at the factory high arrangement.
 
 ## Integrated distance
 
@@ -19,7 +27,7 @@ Main distance activates once for this update. Use `//eb distance off` to hide it
 //eb distance_y 0
 ```
 
-`distanceplus` (initial choice) uses Verdana11, regular, with a thin outline. `default` follows the bar font, bold/italic, rounded .8x size and2px outline. Close range adds one size step in both. The number has no units suffix. Offsets are pixels relative to the right-tip anchor; positive x moves right, positive y down. Each accepts a final bar role or all; omit the value to report. Offsets -500..500. Animation presets retain these text choices. Check long labels on compact bars for overlap before settling the layout.
+`distanceplus` (other bars' initial choice) uses Verdana11, regular, with a thin outline. `default` follows the bar font, bold/italic, rounded .8x size and2px outline. Close range adds one size step in both. The number has no units suffix. Offsets are pixels relative to the right-tip anchor; positive x moves right, positive y down. Each accepts a final bar role or all; omit the value to report. Offsets -500..500. Animation presets retain these text choices. Check long labels on compact bars for overlap before settling the layout.
 
 ### Distance bands and centered emphasis
 
@@ -46,7 +54,7 @@ The enlarged text grows about its normal measured center, then moves2px right/1p
 //eb preview spark
 ```
 
-`defaults animations` is an explicit opt-in for existing characters, useful for trying the new preset on Cioara. It replaces animation/timing/effect/trail-color settings for the main bar, retaining positions, widths, font and other layout/visibility choices. Append `all` to apply each frame's own defaults to all four groups. Omit this command to retain your saved experiments. A reload alone merges missing settings without replacing existing values.
+`defaults animations` is an explicit opt-in for existing characters who want to adopt the latest animation settings. It replaces animation/timing/effect/trail-color settings for the main bar, retaining positions, widths, font and other layout/visibility choices. Append `all` to apply each frame's own defaults to all four groups. Omit this command to retain your saved experiments. A reload alone merges missing settings without replacing existing values.
 
 Commands take values first, then optional `t`, `st`, `ft`, `a`, or `all`; default is `t`. Numeric, color and style commands report settings when their value is omitted. Switches toggle when entered bare; explicit on/off is idempotent. Legacy `//eb set <setting> <bar> <values>` and frame-first shorthand remain supported.
 
@@ -57,6 +65,7 @@ Commands take values first, then optional `t`, `st`, `ft`, `a`, or `all`; defaul
 | `//eb restart` | Dispose previews, detached ghosts and live bars, then dispatch one reload. |
 | `//eb unload` | Same cleanup, then dispatch one unload. |
 | `//eb defaults animations [bar]` | Apply the baked animation preset explicitly. |
+| `//eb defaults layout [bar]` | Restore the high/centered factory arrangement explicitly (default all); preserve other settings. |
 | `//eb preview hp <1..100> [bar]` | Present chosen HP for8s; exposed-trail glow lasts through the configured hold/slide. |
 | `//eb preview ghost [bar]` | Demonstrate a large loss with the selected bar's saved ghost settings. |
 | `//eb preview kill [bar]` | Demonstrate a20%->0% finishing ghost with proportionally smaller glow/flares. |
@@ -64,7 +73,7 @@ Commands take values first, then optional `t`, `st`, `ft`, `a`, or `all`; defaul
 | `//eb preview spark [bar]` | Demonstrate the death glint without a detached ghost; forces sparkle on for this preview only. |
 | `//eb preview off` | Close the demonstration; detached ghosts finish naturally. |
 
-The new main preset uses a400px configured width, .1s foreground/underbar clocks, full trail opacity,2s trail hold/.5s slide,1.2s numeric counting and classic shake with both settling stages. Its ghost has alpha100, no contact/hover/lift distance, .9s lift phase and1s final fade with1px downward/1px right drift. Glow maximum extension33px, flare extension60px/width33px; underbar glow alpha50/extension33px, flare alpha78/extension45px/width30px. Existing Lionstag/Cioara saves remain their own until explicitly changed.
+The new main preset uses an 800px configured width, .1s foreground/underbar clocks, full trail opacity,2s trail hold/.5s slide,1.2s numeric counting and classic shake with both settling stages. Its ghost has alpha100, no contact/hover, .9s lift phase and1s final fade with an initial 1px upward lift followed by 2px downward/1px right drift. Glow maximum extension33px, flare extension60px/width33px; underbar glow alpha50/extension33px, flare alpha78/extension45px/width30px. Existing Lionstag/Cioara saves remain their own until explicitly changed.
 
 ## Critical foreground and red pulse
 
@@ -186,6 +195,8 @@ Run all seven `tests/*_spec.lua` files under Lua5.1 from the repository root. Su
 `WORKFLOW.md` was read directly from GitHub and compared with NPCMirror's canonical copy: identical blob `bc17a173c779a7b921aed1d4bf8c539368aa3730`. Shared formatting uses fragment colors140/167/200/207/0 via Windower chat; help is not echoed to the console. See `docs/ANIMATION.md` for references and `docs/DESIGN-NOTES.md` for proposed future refinements, kept separate from delivered behavior.
 
 ## Cumulative changelog
+
+- **2026-11-02 / Batch20:** Cioara's saved appearance becomes the fresh-install default: centered high 800px target, surrounding subtarget/aggro/focus layout, native distance typography and visibility, and subtle 1px-up/2px-down ghost movement. New explicit `//eb defaults layout` restores initial positions without overwriting established character customizations. No flutter redesign or runtime texture changes.
 
 - **2026-10-18 / Batch14:** Closing death glint using BarFiller2's unchanged gain-sparkle arm sprites; independent snapshot/lifetime, trail-close timing, per-role switch and size/alpha/duration controls, isolated sparkle preview. Retains Batch13 finishing ghosts and main healing effects.
 
