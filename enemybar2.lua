@@ -428,13 +428,26 @@ function handle_command(c, ...)
     if c=='restart' or c=='unload' then lifecycle:request(c);return end
     if lifecycle.pending then return end
     if c=='defaults' then
-        local frame=normalize_bar_name(args[2] or 't')
-        if args[1]~='animations' or not frame then
-            windower.add_to_chat(123,'EnemyBar: //eb defaults animations [t/st/ft/a/all]');return
+        local kind=args[1]
+        local frame=normalize_bar_name(args[2] or (kind=='layout' and 'all' or 't'))
+        if (kind~='animations' and kind~='layout') or not frame then
+            windower.add_to_chat(123,'EnemyBar: //eb defaults animations [t/st/ft/a/all] or //eb defaults layout [t/st/ft/a/all]');return
         end
-        animation_preset.apply(settings,frame)
+        if kind=='animations' then
+            animation_preset.apply(settings,frame)
+        else
+            -- Explicitly opt in: never move existing character bars on reload.
+            -- Preserve widths, appearance and toggles while restoring layout.
+            for _,name in ipairs(frame_names) do
+                if frame=='all' or frame==name then
+                    local f=settings[name..'_bar']
+                    f.pos=default_bar_position(name,f)
+                end
+            end
+        end
         settings:save();initialize_bars()
-        windower.add_to_chat(207,'EnemyBar: animation defaults applied to '..frame..'; layout retained')
+        windower.add_to_chat(207,'EnemyBar: '..kind..' defaults applied to '..frame..
+            (kind=='animations' and '; layout retained' or '; appearance retained'))
         return
     end
     if c=='preview' then
