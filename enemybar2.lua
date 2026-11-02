@@ -25,7 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 _addon.name = 'enemybar2'
 _addon.author = 'mmckee,akaden,A'
-_addon.version = '1.1.1-a.20261023.19'
+_addon.version = '1.1.1-a.20261102.20'
 _addon.language = 'English'
 _addon.commands = {'enemybar','eb'}
 
@@ -399,23 +399,11 @@ function cache_party_member(p, party_number)
     end
 end
 
--- A: use UI dimensions, not the render buffer. Saved positions remain
--- explicit; resetpos is the escape hatch after moving to a smaller client.
+-- Saved positions remain explicit; fresh-install layout uses UI dimensions.
+-- Do not silently re-center or reset personal layouts on addon reload.
+local factory_layout = require('factoryLayout')
 local function default_bar_position(name, frame)
-    local ui = windower.get_windower_settings()
-    local width = frame.skin == 'ffxi' and math.max(16, frame.width+2) or frame.width+2
-    local bottom = math.max(0, ui.ui_y_res-72)
-    local x = math.max(0, math.floor((ui.ui_x_res-width)/2))
-    local y = bottom
-    if name == 'subtarget' then y = math.max(0, bottom-30)
-    elseif name == 'focustarget' then y = math.max(0, bottom-60)
-    elseif name == 'aggro' then
-        x = math.max(0, ui.ui_x_res-width-20)
-        local span = math.max(0, (frame.count-1)*frame.stack_padding)
-        if frame.stack_dir == 'down' then y = math.max(0, bottom-span)
-        else y = math.max(bottom, math.min(span, ui.ui_y_res-12)) end
-    end
-    return {x=x, y=y}
+    return factory_layout.position(name, frame, windower.get_windower_settings())
 end
 
 -- Shared validation keeps both short and legacy commands on one path.
@@ -977,8 +965,12 @@ end
 
 defaults = require('defaultPreset')()
 settings_old = config.load({})
+local initial_ui = windower.get_windower_settings()
 for _, name in ipairs({'target','subtarget','focustarget','aggro'}) do
     local frame = defaults[name..'_bar']
+    -- Keep factory bars inside unusually small client windows. Existing
+    -- saved widths are not changed by this initial sizing calculation.
+    frame.width = math.min(frame.width, math.max(16,initial_ui.ui_x_res-40))
     frame.pos = default_bar_position(name, frame)
 end
 if settings_old.pos then
