@@ -40,9 +40,15 @@ assert(loadfile('enemybar2.lua'))()
 local function event(name,...)
     for _,fn in ipairs(events[name] or {}) do fn(...) end
 end
-assert(_addon.version=='1.1.1-a.20261023.19' and target_bar and #aggro_bars==6)
+assert(_addon.version=='1.1.1-a.20261102.20' and target_bar and #aggro_bars==6)
 assert(target_bar.main_bar and not subtarget_bar.main_bar and not focustarget_bar.main_bar and not aggro_bars[1].main_bar)
-assert(settings.target_bar.foreground_flash_alpha==0 and settings.target_bar.ghost_lift_up==0)
+assert(settings.target_bar.foreground_flash_alpha==0 and settings.target_bar.ghost_lift_up==1)
+-- Fresh client coordinates are centered/high, retaining Cioara's relative layout.
+assert(settings.target_bar.width==800 and target_bar.x==240 and target_bar.y==80)
+assert(settings.subtarget_bar.width==400 and subtarget_bar.x==430 and subtarget_bar.y==100)
+assert(settings.focustarget_bar.width==250 and focustarget_bar.x==500 and focustarget_bar.y==600)
+assert(settings.aggro_bar.width==200 and aggro_bars[1].x==840 and aggro_bars[1].y==100)
+assert(aggro_bars[2].y==120 and settings.aggro_bar.stack_dir=='down')
 event('addon command','help','layout');assert(logs[#logs][1]==0)
 event('addon command','setup','on');assert(logs[#logs][2]:find('Ctrl',1,true))
 -- Both Ctrl keys work; releasing one while the other is held retains snapping.
