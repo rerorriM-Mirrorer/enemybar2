@@ -50,7 +50,7 @@ local function dimensions()
         tonumber(u.ui_y_res or u.y_res) or 720
 end
 local function msg(value,bad)
-    windower.add_to_chat(0,'PetBar':color(167)..' -> ':color(200)..
+    windower.add_to_chat(0,('PetBar'):color(167)..(' -> '):color(200)..
         tostring(value):color(bad and 123 or 207))
 end
 local function save() config.save(settings) end
@@ -293,16 +293,16 @@ local function preview(kind)
 end
 local function help()
     local function line(syntax,desc)
-        windower.add_to_chat(0,'//pb ':color(200)..syntax:color(207)..
-            ' -> ':color(200)..desc:color(0))
+        windower.add_to_chat(0,('//pb '):color(200)..syntax:color(207)..
+            (' -> '):color(200)..desc:color(0))
     end
-    windower.add_to_chat(0,'----- PetBar | SMN -----':color(140))
-    windower.add_to_chat(0,'GENERAL':color(167))
+    windower.add_to_chat(0,('----- PetBar | SMN -----'):color(140))
+    windower.add_to_chat(0,('GENERAL'):color(167))
     line('help','BattleStations-style command list')
     line('status','Version, avatar HP/TP, layout and position')
     line('show | hide | auto','Automatic pet-conditional visibility or hide')
     line('preview [show|hit|heal|tp|off]','Eight-second live HUD effects preview')
-    windower.add_to_chat(0,'APPEARANCE & POSITION':color(167))
+    windower.add_to_chat(0,('APPEARANCE & POSITION'):color(167))
     line('layout <vertical|horizontal>','Equal-width HP/TP; vertical default')
     line('width <60..800>','Base width for both gauges')
     line('gap <0..40>','Space between gauges')
@@ -310,7 +310,7 @@ local function help()
     line('scale <0.65..2>','Width, spacing and caption scale')
     line('pos <x> <y> | resetpos','Save/recover screen-relative position')
     line('lock | unlock','Disable/enable drag; Ctrl-drag snaps to 10px')
-    windower.add_to_chat(0,'ANIMATIONS & LIFECYCLE':color(167))
+    windower.add_to_chat(0,('ANIMATIONS & LIFECYCLE'):color(167))
     line('shake [on|off] | ghost [on|off]','Toggle HP impact effects')
     line('debug [on|off]','Log major avatar changes')
     line('save | restart | unload','Save, or cleanly reload/unload once')
