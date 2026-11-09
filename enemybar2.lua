@@ -25,7 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 _addon.name = 'enemybar2'
 _addon.author = 'mmckee,akaden,A'
-_addon.version = '1.1.1-a.20261102.20'
+_addon.version = '1.1.1-a.20261109.21'
 _addon.language = 'English'
 _addon.commands = {'enemybar','eb'}
 
@@ -45,6 +45,8 @@ local animation_settings=require("animationSettings")
 local animation_preview=require("animationPreview")
 local gauge_effects=require("ffxiGauge")
 local help_text=require('helpText')
+local native_target=require('nativeTarget')
+local native_warning_shown=false
 local animation_preset=require('animationPreset')
 local function save_positions()
     for i, name in ipairs(frame_names) do
@@ -105,6 +107,7 @@ local lifecycle=require('lifecycle').new(function()
     dragged,drag_snap_key_down=nil,false
     snap_keys={}
     state.setup=false
+    native_target.restore()
     animation_preview.clear();gauge_effects.clear_ghosts();destroy_live_bars()
 end,windower.send_command,function(message) windower.add_to_chat(207,message) end)
 
@@ -427,6 +430,24 @@ function handle_command(c, ...)
     c = c:lower()
     if c=='restart' or c=='unload' then lifecycle:request(c);return end
     if lifecycle.pending then return end
+    if c=='hidetarget' or c=='native_target' then
+        local enabled
+        if args[1] then
+            enabled=normalize_boolean(args[1])
+            if enabled==nil or #args~=1 then
+                windower.add_to_chat(123,'EnemyBar: //eb hidetarget [on/off] (bare toggles)')
+                return
+            end
+        else
+            enabled=not settings.hide_native_target
+        end
+        settings.hide_native_target=enabled
+        settings:save()
+        if not enabled then native_target.restore() end
+        windower.add_to_chat(207,'EnemyBar: hide native target '..(enabled and 'ON' or 'OFF')..
+            ' ('..native_target.status()..')')
+        return
+    end
     if c=='defaults' then
         local kind=args[1]
         local frame=normalize_bar_name(args[2] or (kind=='layout' and 'all' or 't'))
@@ -558,6 +579,7 @@ function handle_command(c, ...)
     end
     if c == 'status' then
         windower.add_to_chat(207,'EnemyBar '.._addon.version..': setup '..(state.setup and (state.setup_scope or 'all') or 'off'))
+        windower.add_to_chat(207,'  native target hiding '..(settings.hide_native_target and 'ON' or 'OFF')..': '..native_target.status())
         for _,name in ipairs(frame_names) do
             local f=settings[name..'_bar']
             windower.add_to_chat(207,string.format('%s: %s, width %g, saved pos %g %g, locked %s, bounds %s, trail %s',
@@ -856,6 +878,15 @@ end
 
 windower.register_event('prerender', function()
     if lifecycle.pending then return end
+    local should_hide=settings.hide_native_target and player_id~=nil and not state.in_cs
+    local native_ok=native_target.update(should_hide)
+    if should_hide and not native_ok and not native_warning_shown then
+        local message=native_target.status()
+        if message:find('unavailable:',1,true) then
+            windower.add_to_chat(123,'EnemyBar: '..message..'; native target bar left visible.')
+            native_warning_shown=true
+        end
+    end
     gauge_effects.update_ghosts()
     animation_preview.update()
     local ui=windower.get_windower_settings()
@@ -876,13 +907,15 @@ windower.register_event('prerender', function()
 end)
 windower.register_event('prerender', clean_tracked_actions)
 windower.register_event('incoming chunk', function(id, data)
+    if id==0x0B then native_target.reset() end -- zoning begins; restore before pointer invalidation
     handle_action_packet(id, data)
     handle_party_packets(id, data)
 end)
-windower.register_event('zone change', function() reset_tracked_actions();animation_preview.clear();gauge_effects.clear_ghosts() end)
+windower.register_event('zone change', function() native_target.reset();native_warning_shown=false;reset_tracked_actions();animation_preview.clear();gauge_effects.clear_ghosts() end)
 windower.register_event('unload', function() lifecycle:dispose() end)
 windower.register_event('addon command', handle_command)
 windower.register_event('logout', function(...)
+    native_target.reset()
     animation_preview.clear();gauge_effects.clear_ghosts()
     player_id = nil    
     state = {}      
@@ -897,6 +930,7 @@ windower.register_event('login', function(...)
 end)
 windower.register_event('status change', function(new_status_id)
     if new_status_id == 4 then
+        native_target.restore() -- avoid modifying UI during cutscenes
         state.in_cs = true
         animation_preview.clear();gauge_effects.clear_ghosts()
     else
