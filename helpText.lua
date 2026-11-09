@@ -22,6 +22,7 @@ add('general','near <yalms> [bar]','Near cutoff and enlargement; default22; alia
 add('general','far <yalms> [bar]','Mid/far cutoff; default30; alias distance_far')
 add('general','distance_close_x <pixels> [bar]','Near-only right nudge after centered growth; default2')
 add('general','distance_close_y <pixels> [bar]','Near-only down nudge; default1')
+add('general','hidetarget [on/off]','Hide native target bar but preserve the 3D arrow; requires HideParty helper DLL; bare toggles')
 add('general','status','Version, layout, switches and animation settings')
 add('general','restart','Clean up and reload EnemyBar2 once')
 add('general','unload','Clean up and unload EnemyBar2 once')
