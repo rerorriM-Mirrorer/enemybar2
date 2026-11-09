@@ -354,5 +354,8 @@ end
 preset.target_bar.distance_style='default'
 preset.target_bar.distance_x=-24
 preset.target_bar.distance_y=9
+-- Native target bar is replaced by EnemyBar2; keep the 3D target arrow.
+-- Character-specific config overrides this default after load.
+preset.hide_native_target=true
 return preset
 end
