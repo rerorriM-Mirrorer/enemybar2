@@ -1,8 +1,27 @@
 # enemybar2
 
-Native FFXI target, subtarget, focus and aggro health bars for Windower4. Current working test build: **Batch20, 1.1.1-a.20261102.20**. Read `TESTING.md` first for installation, current checks and the cumulative test record.
+Native FFXI target, subtarget, focus and aggro health bars for Windower4. Current working test build: **Batch21 native target hiding, 1.1.1-a.20261109.21**. Read `TESTING.md` first for installation, current checks and the cumulative test record.
 
 The complete install contains no `data` directory. Overlay its `enemybar2` folder onto the installed addon and reload. Existing saved character settings always take precedence. Fresh-install defaults now follow Cioara's supplied 2026-11-02 effective appearance; coordinates are derived from each client's UI dimensions, not copied from the uploaded character-specific XML.
+
+## Native target hiding with cursor preserved (Batch21)
+
+EnemyBar2 can now hide FFXI's original target bar while retaining the targeting arrow above the monster's head. This is **on by default**, including existing character profiles whose settings have no saved override. It never hides the EnemyBar2 bars and does not touch the native party or alliance lists.
+
+**One-time dependency:** install the unchanged `hideparty_mem.dll` from [DSGarrett/HideParty](https://github.com/DSGarrett/HideParty) into `Windower/plugins/libs/`. That helper DLL gives Windower's Lua addon a way to locate the native target UI and change its visibility/text position. The companion `nativeTarget.lua` module is included with EnemyBar2. If the DLL is absent, the addon keeps rendering its own bars and leaves FFXI's native target display intact; the chat/status output explains the missing helper.
+
+```text
+//eb hidetarget on
+//eb hidetarget off
+//eb hidetarget
+//eb status
+```
+
+Explicit on/off saves persistently; bare `hidetarget` toggles. `//eb native_target on/off` is an alias. To recover immediately, use `//eb hidetarget off`, `//lua unload enemybar2`, or remove the test build and reload the previous one. Normal unload, logout, zone transitions, and entering cutscenes restore the native target display if the original object is still valid. EnemyBar2 reapplies hiding after return to gameplay.
+
+**Do not leave PTHud running simultaneously**: it also manipulates the target bar. If you keep HideParty for the party list, use `//hp show target` and `//hp hide party0` (plus party1/party2 if needed), **not** `//hp hide all`; otherwise HideParty can suppress the 3D cursor by hiding the target primitive's shared text/cursor flag. No changes to HideParty or its DLL were made.
+
+This follows the documented approach of [DSGarrett/PTHud](https://github.com/DSGarrett/PTHud): hide the target background at render visibility byte `+0x69`, leave the cursor/text visibility byte `+0x6A` alone, and shift only the native text off-screen via its Y byte at `+0x4E`. Signature scanning is done once per zone instead of every rendered frame. It is a memory modification and requires live FFXI testing for current-client compatibility and restoration behavior.
 
 ## New factory appearance and layout (Batch20)
 
@@ -279,3 +298,8 @@ The new default `death_spark_style vivid` uses fuller arms and a brighter releas
 - **2026-10-23 - Batch18:** Nest distance in right tip; add regular DistancePlus/inherited text styles and saved x/y offsets.
 
 - **2026-10-23 - Batch19:** Center near-band text growth with saved right/down nudges; add configurable near/far bands and atomic validation.
+
+### 2026-11-09 — Batch21 native target hiding (`1.1.1-a.20261109.21`)
+
+- Optional default-on native target suppression using HideParty's unmodified helper DLL, preserving the 3D cursor. Independent saved `//eb hidetarget [on/off]` control, help/status reporting, and fail-open behavior without the helper. Restores its native changes on disable, unload/restart, logout, zone changes, and cutscenes when the original object remains valid. Party hiding remains in HideParty. Cioara appearance/positions, animation code, and existing settings are unchanged.
+- Development/testing branch `feature/native-target-hide-2026-11-09`; mocked native memory tests included. No live FFXI validation yet.
