@@ -20,6 +20,12 @@
 6. Regression: confirm Cioara bar positions, ghost motion, fade/flash/healing, target/subtarget/focus/aggro updates, distance readout, dragging, preview commands and status/help remain unchanged. Compare with Batch20 if there is a visual discrepancy.
 7. If the targeting arrow disappears, first check that HideParty isn't hiding `target`: `//hp show target`. Report character, UI resolution, zone, whether PTHud was loaded, target type, and the exact behavior. Quick rollback: `//eb hidetarget off`; complete rollback: restore previous Batch20 code and reload.
 
+### Batch21 source-level verification — 2026-11-09
+
+- GitHub branch comparison against `cioara-appearance-2026-11-02` reports only eight intentional files changed: new `nativeTarget.lua` and its test; edits to `enemybar2.lua`, `defaultPreset.lua`, `helpText.lua`, `tests/entrypoint_spec.lua`, `README.md`, and `TESTING.md`. No renderer, animation, textures, DLL, or user data files modified.
+- **11/11 static source-level assertions passed** against the committed feature branch: exposed helper functions; no writes to the shared cursor visibility byte `+0x6A`; restoration of original native text Y; pointer-identity guard; zone rescan mechanism; enabled default; saved command; per-frame enforcement; unload restoration; docs/tests present; version consistency.
+- This is static inspection only. `lua5.1`/`luac5.1` was not available here, so neither `tests/native_target_spec.lua` nor the existing Lua suites were executed. Windower/FFXI loading, actual native rendering, DLL compatibility and crash-free operation remain **unverified**. Do not interpret the static assertions as gameplay or runtime test results.
+
 ### Batch21 automated checks
 
 - Run `lua5.1 tests/native_target_spec.lua` in the addon repository directory; tests use a mocked helper module and do not touch a real process.
