@@ -10,6 +10,13 @@
 - **Dependency and conflict precautions:** Install trusted `hideparty_mem.dll` under `Windower/plugins/libs/`. Unload PTHud before testing; never run two native-target owners. With HideParty still managing party lists, run `//hp show target` and `//hp hide party0` (and party1/2 as needed) rather than `//hp hide all`: HideParty's target path also hides the 3D cursor. Do not overwrite personal `data/` or the existing settings.
 - **Verification:** Code paths reviewed against current EnemyBar2, PTHud, and HideParty published source. Mocked test file authored for hide/restore, 3D cursor flag, repeated frames, changed target pointers, zone rescan, missing signature and missing DLL. These tests must be executed under Lua 5.1 before they can be recorded as passing. **Actual FFXI/Windower compatibility and cursor preservation remain unverified** as of this record.
 
+### Batch21 first live acceptance — 2026-11-09
+
+- **User report:** After installing the native target hiding integration, the user reported: "YES. IT WORKS GREAT AND I LOVE IT." This followed the explicit request to check whether FFXI's native target bar disappears while the 3D cursor remains visible.
+- **Interpretation:** Initial in-game use was enthusiastically accepted; the primary target-hiding behavior is user-reported working. No independently captured game logs, screenshots or detailed test matrix were provided. Do **not** infer that toggle restoration, zone changes, logout, cutscenes, all target types, every character/window resolution, or DLL absence were each separately tested.
+- **Milestone:** Preserve the installed `1.1.1-a.20261109.21` native-hide implementation as the first user-approved test baseline on the feature branch. The existing prior Batch20 Cioara appearance/animation baseline remains intact. Hold off on merging to `master` until broader lifecycle/regression checks are accepted.
+- **Remaining checks:** Run the automated Lua suites and the live toggling/unload/zoning, multi-client, target-type, and helper-unavailable scenarios listed below before calling the change fully regression-verified.
+
 ### Batch21 live testing instructions
 
 1. Back up the installed `enemybar2` directory and `data`. Download the feature branch ZIP, unpack, and copy the contained addon source over the installed `Windower/addons/enemybar2/` **without replacing data**. Confirm `hideparty_mem.dll` is in `Windower/plugins/libs/`. Unload PTHud; with HideParty loaded, do `//hp show target` followed by `//hp hide party0`.
