@@ -1,5 +1,35 @@
 # TESTING.md
 
+## Current testing batch — Batch21 native target hiding (2026-11-09)
+
+- **Repository/branch:** `rerorriM-Mirrorer/enemybar2` / `feature/native-target-hide-2026-11-09`. Started from `cioara-appearance-2026-11-02`, retaining the complete Batch20 Cioara appearance and existing distance/animation behavior. `master` is unchanged.
+- **Request:** Hide the built-in FFXI target bar while retaining the targeting arrow above the monster, controlled by EnemyBar2 rather than PTHud. Leave native party hiding with HideParty for now. No party-list changes and no changes to the C helper DLL.
+- **Implementation:** New `nativeTarget.lua` uses the existing separately installed `hideparty_mem.dll` and PTHud's documented native offsets. Signature `66C78182000000????C7818C000000????????C781900000` resolves target pointer through `FFXiMain.dll`, and the helper follows the `base -> +0x08 -> render` chain. Set native background visibility `render+0x69=0`, keep text/cursor visibility `render+0x6A` unchanged, move native text Y `ptr+0x4E=0xFF`. Restore captured text Y and background visibility when disabling or unloading and when the same render object is still valid. No per-frame signature rescan; reset at zoning boundaries. Cutscenes temporarily restore the target UI.
+- **Default/control:** New `settings.hide_native_target = true` global config default, merged without changing existing per-character bar settings. `//eb hidetarget [on/off]` or bare toggle; `//eb native_target [on/off]` alias. Status/help report it. If the helper DLL or signature is unavailable, this addition fails open (native target bar remains visible) and does not prevent the custom bars from working. Memory-only integration; the DLL is **not** copied into this repository or modified.
+- **Code:** `nativeTarget.lua` (new), `enemybar2.lua`, `defaultPreset.lua`, `helpText.lua`, `README.md`, `tests/native_target_spec.lua` (new) and `tests/entrypoint_spec.lua`. Version `1.1.1-a.20261109.21`.
+- **Dependency and conflict precautions:** Install trusted `hideparty_mem.dll` under `Windower/plugins/libs/`. Unload PTHud before testing; never run two native-target owners. With HideParty still managing party lists, run `//hp show target` and `//hp hide party0` (and party1/2 as needed) rather than `//hp hide all`: HideParty's target path also hides the 3D cursor. Do not overwrite personal `data/` or the existing settings.
+- **Verification:** Code paths reviewed against current EnemyBar2, PTHud, and HideParty published source. Mocked test file authored for hide/restore, 3D cursor flag, repeated frames, changed target pointers, zone rescan, missing signature and missing DLL. These tests must be executed under Lua 5.1 before they can be recorded as passing. **Actual FFXI/Windower compatibility and cursor preservation remain unverified** as of this record.
+
+### Batch21 live testing instructions
+
+1. Back up the installed `enemybar2` directory and `data`. Download the feature branch ZIP, unpack, and copy the contained addon source over the installed `Windower/addons/enemybar2/` **without replacing data**. Confirm `hideparty_mem.dll` is in `Windower/plugins/libs/`. Unload PTHud; with HideParty loaded, do `//hp show target` followed by `//hp hide party0`.
+2. `//lua reload enemybar2` and `//eb status`: confirm `.20261109.21`, hide native target ON, and no missing-helper/signature warning. Select and cycle through monsters, NPCs and party members in and out of combat; FFXI's native target panel/name should remain invisible, while the **3D target arrow** and EnemyBar2 target/subtarget/focus/aggro bars remain functional.
+3. `//eb hidetarget off`: original FFXI target background and text return immediately. Arrow still appears. `//eb hidetarget on`: original target bar disappears again but arrow stays. Repeat with no target selected, subtarget menus, lock-on, camera movement, target changes and settings reload. Bare `//eb hidetarget` toggles. Check persistence after `//lua reload enemybar2`.
+4. Zone, enter/exit cutscenes, log out/in, `//eb restart` and `//eb unload`; confirm the native target is restored when addon unloads and never remains displaced/missing unexpectedly. Re-enable and check hiding returns without flicker. Repeat on PC at 3840x2160 and a multibox/laptop window, confirming independent client state and no cross-client effects.
+5. Test with helper DLL absent using a backed-up, disposable installation: EnemyBar2 should continue drawing its bars with an explicit warning; the native target stays visible and `//eb hidetarget off` remains possible. Restore helper afterward. Do not delete/move DLL while the game is running; change it between client sessions.
+6. Regression: confirm Cioara bar positions, ghost motion, fade/flash/healing, target/subtarget/focus/aggro updates, distance readout, dragging, preview commands and status/help remain unchanged. Compare with Batch20 if there is a visual discrepancy.
+7. If the targeting arrow disappears, first check that HideParty isn't hiding `target`: `//hp show target`. Report character, UI resolution, zone, whether PTHud was loaded, target type, and the exact behavior. Quick rollback: `//eb hidetarget off`; complete rollback: restore previous Batch20 code and reload.
+
+### Batch21 automated checks
+
+- Run `lua5.1 tests/native_target_spec.lua` in the addon repository directory; tests use a mocked helper module and do not touch a real process.
+- Run `lua5.1 tests/entrypoint_spec.lua` and the existing test suite; confirm existing bar/command behavior and no change to player settings.
+- Run `luac5.1 -p` on modified/new Lua files and compare the branch with its starting commit; ensure no changes to bar render/animation sources or `data/`.
+- Capture results accurately, distinguishing simulated verification from live FFXI observations.
+
+---
+
+
 # Current testing batch — Batch20 Cioara appearance and high layout (2026-11-02)
 
 - **Repository/branch:** `rerorriM-Mirrorer/enemybar2` / `cioara-appearance-2026-11-02`; forked from `distance-readout-2026-10-23` at `e4e13c024a171e6180de0603c9f9bde32e96311e`. The branch holds unverified development work; `master` stays unchanged.
