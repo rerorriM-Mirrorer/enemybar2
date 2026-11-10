@@ -6,7 +6,10 @@ function layout.position(name,frame,ui)
     local screen_height=ui.ui_y_res
     local x=math.floor((screen_width-frame.width)/2)
     local y=80
-    if name=='subtarget' then
+    if name=='target' then
+        -- Cioara's saved main bar sits 30px left of the exact screen center.
+        x=x-30
+    elseif name=='subtarget' then
         x=x-10; y=100
     elseif name=='focustarget' then
         x=x-15; y=math.floor(screen_height*5/6+0.5)
