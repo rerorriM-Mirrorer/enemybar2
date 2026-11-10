@@ -1,3 +1,41 @@
+# Current testing batch — Batch22 Cioara defaults (2026-11-10)
+
+- **Repository/branch:** `rerorriM-Mirrorer/enemybar2` / `cioara-defaults-2026-11-10`, based on the user-approved native-hide development branch `feature/native-target-hide-2026-11-09` at commit `105178747ca62f8906a9e96ca400862923eaefab`. Do not merge to `master` before live verification.
+- **Request/source:** Use supplied `settings(20261110-095657).xml` to make Cioara's effective settings the new factory defaults for other characters. Resolve values by overlaying each `cioara` bar on the corresponding XML `global` bar, rather than copying only one section or shipping a user's saved settings file.
+- **Changed values vs Batch21:** Main target `ghost_lift_up=0` (previously1), `ghost_drift_up=-1` (previously-2), and initial factory position x1490 rather than1520 at3840px width. Aggro stack direction `up` (previously down); 20px spacing and 200px width retained. All other Cioara preferences already match the previous factory preset and its animation snapshot. No renderer/animation engine, DLL, or native hiding module modified.
+- **User-controlled adoption:** Ordinary reload continues to merge factory defaults without overwriting existing saved character preferences. New `//eb defaults profile [t/st/ft/a/all]` resets selected bar groups to independent deep copies of the current factory preset, recomputes screen-relative positions and small-window width caps, and saves the current character. Default selection is `all`. The independent `hide_native_target` setting is preserved. Existing `defaults layout` / `defaults animations` behaviors are unchanged.
+- **Code:** `defaultPreset.lua`, `factoryLayout.lua`, `enemybar2.lua`, `helpText.lua`, `tests/factory_layout_spec.lua`, `tests/entrypoint_spec.lua`, `README.md`, `TESTING.md`. Version `1.1.1-a.20261110.22`.
+- **Packaging:** Use the complete feature branch source folder; do not overwrite `data/` or copy the uploaded personal XML into the addon. Retain `WORKFLOW.md` and this `TESTING.md` inside the installable addon folder when packaging. Keep PTHud unloaded and use HideParty's target-show configuration as recorded in Batch21.
+- **Verification:** Source-level patch checks and XML cross-check are the available checks in this development session; Lua5.1 runner and FFXI were not available for execution. **In-game and automated Lua runtime testing remain pending.** Prior user-reported live acceptance concerns only the Batch21 native-hide baseline, not this revised profile.
+
+### Batch22 focused tests
+
+1. Back up `Windower/addons/enemybar2/data/settings.xml` and existing addon code. Install the full Batch22 branch over the addon, preserving data. Reload on Cioara; her saved positions, ghost animation, aggro direction, native hiding, and the other bars should remain unchanged.
+2. On a character with older saved overrides, `//lua reload enemybar2` must **not** reset that character. Run `//eb defaults profile` to adopt Cioara's entire bar preset (not just animations), then reload. Check all four groups, including target width800, subtarget400, focus250, aggro200 (caps apply to small windows), aggro stacked up and the expected ghost timings. `//eb defaults profile t` should touch only main target settings.
+3. At 3840x2160 expect fresh preset: target (1490,80), subtarget (1710,100), focus (1780,1800), aggro (2120,100), subsequent aggro rows 20px above. At1280x720 expect target (210,80), subtarget (430,100), focus (500,600), aggro (840,100). Confirm no clipping in small clients.
+4. Preview `//eb preview ghost`, `//eb preview kill`, `//eb preview heal` and `//eb preview spark`. The main ghost should complete the .9s stationary vertical lift phase, then drift down1px over1s, without unexpectedly affecting horizontal motion or the closing glint.
+5. Regression: test `//eb defaults animations` and `//eb defaults layout`, saved per-character isolation, target-of-target and distance text, aggro combat updates, native hide on/off, targeting cursor, zone/restart/unload, and no interference from PTHud/HideParty.
+
+### Batch22 verification checklist
+
+- `lua5.1 tests/factory_layout_spec.lua`
+- `lua5.1 tests/entrypoint_spec.lua`
+- `lua5.1 tests/native_target_spec.lua` and remaining existing regression suites
+- `luac5.1 -p` on the changed Lua files and a code diff against feature/native-target-hide baseline
+- Live character/resolution tests as above. Record actual results here without treating source checks as game execution.
+
+## Cumulative Batch22 delivery record
+
+| Date | Batch | Artifact | Branch / commit | Verification |
+| --- | --- | --- | --- | --- |
+| 2026-11-10 | 22 | Complete EnemyBar2 feature source (no personal XML or DLL) | `cioara-defaults-2026-11-10` (commit follows from branch history) | Source-level checks only; Lua5.1/live pending |
+
+## Batch22 user-supplied material
+
+- `settings(20261110-095657).xml` — user's exported settings, 2026-11-10. Cioara's `global` plus per-character values were combined; no saved data file was committed to the repository.
+
+---
+
 # TESTING.md
 
 ## Current testing batch — Batch21 native target hiding (2026-11-09)
