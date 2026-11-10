@@ -6,7 +6,7 @@ The complete install contains no `data` directory. Overlay its `enemybar2` folde
 
 ## Cioara's November 10 factory defaults (Batch22)
 
-Cioara's effective settings combine the uploaded `settings(20261110-095657).xml` `global` bar values with her `cioara` overrides. The baked factory preset now matches the changed preferences: aggro bars stack **up** every 20px; the main ghost begins with **0px vertical lift** and drifts **1px downward** during its fade; and the 800px main bar's 3840px-wide position moves from x1520 to **x1490**. The other bar colors, width, visible indicators, distance readout, animation/effect settings and native target suppression are retained. On smaller clients, initial positions still reflow relative to the UI rather than copying fixed 3840x2160 coordinates.
+Cioara's effective settings combine the uploaded `settings(20261110-095657).xml` `global` bar values with her `cioara` overrides. The baked factory preset now matches the changed preferences: aggro bars stack **up** every 20px; the main ghost begins with **0px vertical lift** and drifts **1px downward** during its fade; the main death sparkle's horizontal and vertical thickness caps are both **16px**; and the 800px main bar's 3840px-wide position moves from x1520 to **x1490**. The other bar colors, width, visible indicators, distance readout, animation/effect settings and native target suppression are retained. On smaller clients, initial positions still reflow relative to the UI rather than copying fixed 3840x2160 coordinates.
 
 Already-saved character profiles win on ordinary reload, as before. To **adopt the entire new bar preset** for one character, including bar widths, visibility, colors, animation timings and placement, back up that character's `data/settings.xml` and run:
 
@@ -320,6 +320,6 @@ The new default `death_spark_style vivid` uses fuller arms and a brighter releas
 
 ### 2026-11-10 — Batch22 Cioara settings as factory defaults (`1.1.1-a.20261110.22`)
 
-- Read the uploaded November 10 XML by overlaying Cioara's character settings on global values. Revised aggro stacking to up; main ghost 0px vertical lift, 1px downward drift; target factory position 30px left of center. Retained screen-relative positioning, existing effects and Batch21 native target hiding.
+- Read the uploaded November 10 XML by overlaying Cioara's character settings on global values. Revised aggro stacking to up; main ghost 0px vertical lift, 1px downward drift, death spark H/V caps16px; target factory position 30px left of center. Retained screen-relative positioning, existing effects and Batch21 native target hiding.
 - Added `//eb defaults profile [t/st/ft/a/all]`, defaulting to all, to apply a deep-copied, resolution-aware factory profile explicitly to existing characters. Ordinary reload remains non-destructive; native-target hiding setting is preserved.
 - Updated entry-point and factory-layout regression specs and cumulative testing instructions. Live FFXI tests remain pending.
