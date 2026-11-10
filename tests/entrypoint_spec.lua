@@ -42,6 +42,7 @@ local function event(name,...)
 end
 assert(_addon.version=='1.1.1-a.20261110.22' and target_bar and #aggro_bars==6)
 assert(settings.hide_native_target==true)
+assert(settings.target_bar.death_spark_h_cap==16 and settings.target_bar.death_spark_v_cap==16)
 assert(target_bar.main_bar and not subtarget_bar.main_bar and not focustarget_bar.main_bar and not aggro_bars[1].main_bar)
 assert(settings.target_bar.foreground_flash_alpha==0 and settings.target_bar.ghost_lift_up==0)
 -- Fresh client coordinates are centered/high, retaining Cioara's relative layout.
