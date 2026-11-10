@@ -254,6 +254,8 @@ local preset={
     },
     target_bar={
         animation_duration=3,
+        death_spark_h_cap=16,
+        death_spark_v_cap=16,
         background_alpha=128,
         bold=true,
         bounds=true,
