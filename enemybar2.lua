@@ -25,7 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 _addon.name = 'enemybar2'
 _addon.author = 'mmckee,akaden,A'
-_addon.version = '1.1.1-a.20261109.21'
+_addon.version = '1.1.1-a.20261110.22'
 _addon.language = 'English'
 _addon.commands = {'enemybar','eb'}
 
@@ -409,6 +409,14 @@ local function default_bar_position(name, frame)
     return factory_layout.position(name, frame, windower.get_windower_settings())
 end
 
+-- Copy the factory profile instead of sharing nested tables with the defaults.
+local function clone_settings(value)
+    if type(value)~='table' then return value end
+    local result={}
+    for key,child in pairs(value) do result[key]=clone_settings(child) end
+    return result
+end
+
 -- Shared validation keeps both short and legacy commands on one path.
 local function valid_rgb(r,g,b)
     for _,raw in ipairs({r,g,b}) do
@@ -450,15 +458,29 @@ function handle_command(c, ...)
     end
     if c=='defaults' then
         local kind=args[1]
-        local frame=normalize_bar_name(args[2] or (kind=='layout' and 'all' or 't'))
-        if (kind~='animations' and kind~='layout') or not frame then
-            windower.add_to_chat(123,'EnemyBar: //eb defaults animations [t/st/ft/a/all] or //eb defaults layout [t/st/ft/a/all]');return
+        local full=kind=='profile'
+        local frame=normalize_bar_name(args[2] or ((kind=='layout' or full) and 'all' or 't'))
+        if (kind~='animations' and kind~='layout' and not full) or not frame or #args>2 then
+            windower.add_to_chat(123,'EnemyBar: //eb defaults animations|layout|profile [t/st/ft/a/all]');return
         end
         if kind=='animations' then
             animation_preset.apply(settings,frame)
+        elseif full then
+            -- Explicit reset for existing characters: never overwrite saved
+            -- layouts, widths or effects merely by reloading the addon.
+            -- Leave the independent native-target hiding preference intact.
+            local source=require('defaultPreset')()
+            local ui=windower.get_windower_settings()
+            for _,name in ipairs(frame_names) do
+                if frame=='all' or frame==name then
+                    local fresh=clone_settings(source[name..'_bar'])
+                    fresh.width=math.min(fresh.width,math.max(16,ui.ui_x_res-40))
+                    fresh.pos=default_bar_position(name,fresh)
+                    settings[name..'_bar']=fresh
+                end
+            end
         else
-            -- Explicitly opt in: never move existing character bars on reload.
-            -- Preserve widths, appearance and toggles while restoring layout.
+            -- Restore only geometry, preserving saved widths and appearance.
             for _,name in ipairs(frame_names) do
                 if frame=='all' or frame==name then
                     local f=settings[name..'_bar']
@@ -468,7 +490,8 @@ function handle_command(c, ...)
         end
         settings:save();initialize_bars()
         windower.add_to_chat(207,'EnemyBar: '..kind..' defaults applied to '..frame..
-            (kind=='animations' and '; layout retained' or '; appearance retained'))
+            (kind=='animations' and '; layout retained' or
+             (kind=='layout' and '; appearance retained' or '; full bar profile restored')))
         return
     end
     if c=='preview' then
