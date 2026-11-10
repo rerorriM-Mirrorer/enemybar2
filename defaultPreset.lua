@@ -1,4 +1,4 @@
--- A: factory appearance follows Cioara's 2026-11-02 effective settings.
+-- A: factory appearance follows Cioara's 2026-11-10 effective settings.
 -- Only the initial position is screen-relative; saved personal choices always win.
 return function()
 local preset={
@@ -64,7 +64,7 @@ local preset={
         show_target=true,
         show_target_icon=false,
         skin='ffxi',
-        stack_dir='down',
+        stack_dir='up',
         stack_padding=20,
         super_settle='small',
         text_duration=0.22,
@@ -276,7 +276,7 @@ local preset={
         ghost_alpha=100,
         ghost_contact_duration=0,
         ghost_drift_right=1,
-        ghost_drift_up=-2,
+        ghost_drift_up=-1,
         ghost_fade_duration=1,
         ghost_flare_alpha=200,
         ghost_flare_height=60,
@@ -294,7 +294,7 @@ local preset={
         ghost_hover_duration=0,
         ghost_lift_duration=0.9,
         ghost_lift_right=0,
-        ghost_lift_up=1,
+        ghost_lift_up=0,
         ghost_period=0.1,
         heal_duration=0.35,
         healing_effect=true,
