@@ -1,8 +1,21 @@
 # enemybar2
 
-Native FFXI target, subtarget, focus and aggro health bars for Windower4. Current working test build: **Batch21 native target hiding, 1.1.1-a.20261109.21**. Read `TESTING.md` first for installation, current checks and the cumulative test record.
+Native FFXI target, subtarget, focus and aggro health bars for Windower4. Current working test build: **Batch22 Cioara defaults, 1.1.1-a.20261110.22** (retains Batch21 native target hiding). Read `TESTING.md` first for installation, current checks and the cumulative test record.
 
-The complete install contains no `data` directory. Overlay its `enemybar2` folder onto the installed addon and reload. Existing saved character settings always take precedence. Fresh-install defaults now follow Cioara's supplied 2026-11-02 effective appearance; coordinates are derived from each client's UI dimensions, not copied from the uploaded character-specific XML.
+The complete install contains no `data` directory. Overlay its `enemybar2` folder onto the installed addon and reload. Existing saved character settings always take precedence. Fresh-install defaults now follow Cioara's supplied 2026-11-10 effective appearance; coordinates are derived from each client's UI dimensions, not copied from the uploaded character-specific XML.
+
+## Cioara's November 10 factory defaults (Batch22)
+
+Cioara's effective settings combine the uploaded `settings(20261110-095657).xml` `global` bar values with her `cioara` overrides. The baked factory preset now matches the changed preferences: aggro bars stack **up** every 20px; the main ghost begins with **0px vertical lift** and drifts **1px downward** during its fade; and the 800px main bar's 3840px-wide position moves from x1520 to **x1490**. The other bar colors, width, visible indicators, distance readout, animation/effect settings and native target suppression are retained. On smaller clients, initial positions still reflow relative to the UI rather than copying fixed 3840x2160 coordinates.
+
+Already-saved character profiles win on ordinary reload, as before. To **adopt the entire new bar preset** for one character, including bar widths, visibility, colors, animation timings and placement, back up that character's `data/settings.xml` and run:
+
+```text
+//eb defaults profile
+//eb defaults profile t
+```
+
+The first command resets all four bar groups for the current character and saves them; the second resets only its target group (other choices: `st`, `ft`, `a`). Neither modifies another character's settings or toggles the separately saved `hide_native_target` preference. Unlike `//eb defaults layout` (positions only) and `//eb defaults animations` (animation settings only), the profile command intentionally replaces existing bar preferences. Reload after applying it to confirm persistence.
 
 ## Native target hiding with cursor preserved (Batch21)
 
@@ -23,11 +36,11 @@ Explicit on/off saves persistently; bare `hidetarget` toggles. `//eb native_targ
 
 This follows the documented approach of [DSGarrett/PTHud](https://github.com/DSGarrett/PTHud): hide the target background at render visibility byte `+0x69`, leave the cursor/text visibility byte `+0x6A` alone, and shift only the native text off-screen via its Y byte at `+0x4E`. Signature scanning is done once per zone instead of every rendered frame. It is a memory modification and requires live FFXI testing for current-client compatibility and restoration behavior.
 
-## New factory appearance and layout (Batch20)
+## New factory appearance and layout (Batch22, updated from Batch20)
 
-At 3840x2160, the 800px main target gauge sits at x1520/y80 (centered horizontally), subtarget 400px at x1710/y100, aggro 200px at x2120/y100 stacking down by 20px, and focus 250px at x1780/y1800. The focus position is 5/6 of the UI height. Other top positions use the same small pixel offsets from the main center, including the aggro bar's rightward placement. Smaller client windows derive their own x coordinates; initial widths are capped to leave a 40px margin when necessary.
+At 3840x2160, the 800px main target gauge sits at x1490/y80 (30px left of horizontal center), subtarget 400px at x1710/y100, aggro 200px at x2120/y100 stacking up by 20px, and focus 250px at x1780/y1800. The focus position is 5/6 of the UI height. Other top positions use the same small pixel offsets from the main center, including the aggro bar's rightward placement. Smaller client windows derive their own x coordinates; initial widths are capped to leave a 40px margin when necessary.
 
-All four bars retain the FFXI skin and their existing role colors. Main uses Arial14 bold/italic, `distance_style default` with offsets -24/+9, target-of-target visible, and all of Cioara's large underbar, trail, flash and healing settings. Focus/subtarget/aggro retain their own inherited appearance and periods (.3s shared pulse). New ghosts lift **1px up** during .9s, then drift **2px down** during the 1s fade, retaining horizontal drift, opacity flutter, glow and flares. Both large ghost hits and small observed finishing-hit chunks use this main-bar motion. The closing death sparkle remains fixed at the original left endpoint.
+All four bars retain the FFXI skin and their existing role colors. Main uses Arial14 bold/italic, `distance_style default` with offsets -24/+9, target-of-target visible, and all of Cioara's large underbar, trail, flash and healing settings. Focus/subtarget/aggro retain their own inherited appearance and periods (.3s shared pulse). New ghosts hold vertical position during their .9s lift phase, then drift **1px down** during the 1s fade, retaining horizontal drift, opacity flutter, glow and flares. Both large ghost hits and small observed finishing-hit chunks use this main-bar motion. The closing death sparkle remains fixed at the original left endpoint.
 
 For an existing character, reloading alone will **not** change saved positions, widths, fonts, or animation tuning. To opt into only the new positions, run `//eb defaults layout` (all four bars) or `//eb defaults layout t` (main bar only). This saves positions, preserving widths, colors, distance and animations. `//eb resetpos` is different: it centers a selection on screen, not at the factory high arrangement.
 
@@ -84,7 +97,8 @@ Commands take values first, then optional `t`, `st`, `ft`, `a`, or `all`; defaul
 | `//eb restart` | Dispose previews, detached ghosts and live bars, then dispatch one reload. |
 | `//eb unload` | Same cleanup, then dispatch one unload. |
 | `//eb defaults animations [bar]` | Apply the baked animation preset explicitly. |
-| `//eb defaults layout [bar]` | Restore the high/centered factory arrangement explicitly (default all); preserve other settings. |
+| `//eb defaults layout [bar]` | Restore the high factory arrangement explicitly (default all); preserve other settings. |
+| `//eb defaults profile [bar]` | Apply full Cioara factory bar preset to this character (default all), replacing its saved bar settings; independent native hiding preference is retained. |
 | `//eb preview hp <1..100> [bar]` | Present chosen HP for8s; exposed-trail glow lasts through the configured hold/slide. |
 | `//eb preview ghost [bar]` | Demonstrate a large loss with the selected bar's saved ghost settings. |
 | `//eb preview kill [bar]` | Demonstrate a20%->0% finishing ghost with proportionally smaller glow/flares. |
@@ -92,7 +106,7 @@ Commands take values first, then optional `t`, `st`, `ft`, `a`, or `all`; defaul
 | `//eb preview spark [bar]` | Demonstrate the death glint without a detached ghost; forces sparkle on for this preview only. |
 | `//eb preview off` | Close the demonstration; detached ghosts finish naturally. |
 
-The new main preset uses an 800px configured width, .1s foreground/underbar clocks, full trail opacity,2s trail hold/.5s slide,1.2s numeric counting and classic shake with both settling stages. Its ghost has alpha100, no contact/hover, .9s lift phase and1s final fade with an initial 1px upward lift followed by 2px downward/1px right drift. Glow maximum extension33px, flare extension60px/width33px; underbar glow alpha50/extension33px, flare alpha78/extension45px/width30px. Existing Lionstag/Cioara saves remain their own until explicitly changed.
+The new main preset uses an 800px configured width, .1s foreground/underbar clocks, full trail opacity,2s trail hold/.5s slide,1.2s numeric counting and classic shake with both settling stages. Its ghost has alpha100, no contact/hover, .9s lift phase and1s final fade with no vertical lift followed by 1px downward/1px right drift. Glow maximum extension33px, flare extension60px/width33px; underbar glow alpha50/extension33px, flare alpha78/extension45px/width30px. Existing Lionstag/Cioara saves remain their own until explicitly changed.
 
 ## Critical foreground and red pulse
 
@@ -303,3 +317,9 @@ The new default `death_spark_style vivid` uses fuller arms and a brighter releas
 
 - Optional default-on native target suppression using HideParty's unmodified helper DLL, preserving the 3D cursor. Independent saved `//eb hidetarget [on/off]` control, help/status reporting, and fail-open behavior without the helper. Restores its native changes on disable, unload/restart, logout, zone changes, and cutscenes when the original object remains valid. Party hiding remains in HideParty. Cioara appearance/positions, animation code, and existing settings are unchanged.
 - Development/testing branch `feature/native-target-hide-2026-11-09`; mocked native memory tests included. No live FFXI validation yet.
+
+### 2026-11-10 — Batch22 Cioara settings as factory defaults (`1.1.1-a.20261110.22`)
+
+- Read the uploaded November 10 XML by overlaying Cioara's character settings on global values. Revised aggro stacking to up; main ghost 0px vertical lift, 1px downward drift; target factory position 30px left of center. Retained screen-relative positioning, existing effects and Batch21 native target hiding.
+- Added `//eb defaults profile [t/st/ft/a/all]`, defaulting to all, to apply a deep-copied, resolution-aware factory profile explicitly to existing characters. Ordinary reload remains non-destructive; native-target hiding setting is preserved.
+- Updated entry-point and factory-layout regression specs and cumulative testing instructions. Live FFXI tests remain pending.
