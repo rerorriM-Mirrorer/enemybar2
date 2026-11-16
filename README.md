@@ -1,6 +1,6 @@
 # enemybar2
 
-Native FFXI target, subtarget, focus and aggro health bars for Windower4. Current working test build: **Batch22 Cioara defaults, 1.1.1-a.20261110.22** (retains Batch21 native target hiding). Read `TESTING.md` first for installation, current checks and the cumulative test record.
+Native FFXI target, subtarget, focus and aggro health bars for Windower4. Current working test build: **Batch23 ghost threshold, 1.1.1-a.20261115.23** (retains Batch22 Cioara defaults and Batch21 native target hiding). Read `TESTING.md` first for installation, current checks and the cumulative test record.
 
 The complete install contains no `data` directory. Overlay its `enemybar2` folder onto the installed addon and reload. Existing saved character settings always take precedence. Fresh-install defaults now follow Cioara's supplied 2026-11-10 effective appearance; coordinates are derived from each client's UI dimensions, not copied from the uploaded character-specific XML.
 
@@ -100,8 +100,8 @@ Commands take values first, then optional `t`, `st`, `ft`, `a`, or `all`; defaul
 | `//eb defaults layout [bar]` | Restore the high factory arrangement explicitly (default all); preserve other settings. |
 | `//eb defaults profile [bar]` | Apply full Cioara factory bar preset to this character (default all), replacing its saved bar settings; independent native hiding preference is retained. |
 | `//eb preview hp <1..100> [bar]` | Present chosen HP for8s; exposed-trail glow lasts through the configured hold/slide. |
-| `//eb preview ghost [bar]` | Demonstrate a large loss with the selected bar's saved ghost settings. |
-| `//eb preview kill [bar]` | Demonstrate a20%->0% finishing ghost with proportionally smaller glow/flares. |
+| `//eb preview ghost [0..99] [bar]` | Demonstrate 100% to the chosen HP (default 5, a 95-point loss) with the selected bar's saved ghost settings. `0` shows a one-hit kill. Chat reports the loss and the threshold, so a missing ghost is explained. |
+| `//eb preview kill [bar]` | Demonstrate a 20%->0% finish with its closing spark. At the default threshold there is no ghost; lower `ghost_threshold` below 20 to see a finishing chunk. |
 | `//eb preview heal [bar]` | Demonstrate35%->85% recovery; extra glow/flares appear on main only. |
 | `//eb preview spark [bar]` | Demonstrate the death glint without a detached ghost; forces sparkle on for this preview only. |
 | `//eb preview off` | Close the demonstration; detached ghosts finish naturally. |
@@ -125,10 +125,11 @@ For white flashing: `//eb foreground_flash_color 255 255 255`, then `//eb foregr
 
 ## Detached ghost: movement, color and flickering height
 
-Ghosts trigger on an **observed loss of at least75 HP percentage points, or any observed positive-HP->0% transition** while that bar is visible and `ghost_hit` is enabled. Repeated zero updates do not create another ghost; a large killing hit creates one chunk. Small finishing chunks copy only the remaining HP section, with proportionally smaller glow/flare height and capped flare width. Existing large ghosts retain their sizes. The addon needs to observe0%; target disappearance alone does not establish death. Such a sample may combine updates; the addon does not label it as a proven individual attack. Snapshots retain their tuning and screen position across target changes, live-bar recreation and preview replacement. Scene transitions/unload clean them up.
+Ghosts trigger on a single **observed loss strictly greater than `ghost_threshold` HP percentage points (default 90)** while that bar is visible and `ghost_hit` is enabled. FFXI reports whole-number HP%, so the default means a loss of 91 points or more; exactly 90 does not qualify. **Reaching 0% no longer creates a ghost by itself** (Batch23): a kill from 90% or less shows only the closing spark, and a one-hit kill from full health still qualifies as a loss of 100. The super shake keeps its own separate 75-point trigger, so hits of 75 to 90 points still shake without a ghost. The threshold is per bar, accepts 1..100, and is read when the loss is observed. A sample may combine updates; the addon does not label it as a proven individual attack. A ghost copies the lost slice, with glow and flare height scaled by the loss relative to 75 points (always full size at the default). Snapshots retain their tuning and screen position across target changes, live-bar recreation and preview replacement. Scene transitions/unload clean them up.
 
 | Command after `//eb` | Default / meaning |
 | --- | --- |
+| `ghost_threshold <1..100> [bar]` | 90: a single observed loss must exceed this many HP points to make a ghost. Lower it (for example 75 or 20) to compare older behavior; 100 suppresses ghosts without touching `ghost_hit`. |
 | `ghost_fade_to <white\|trail> [bar]` |white: stay white through opacity fade; trail restores the previous white-to-red transition. Affects the chunk; glow RGB remains separately controlled. |
 | `ghost_height_mode <off\|snap\|smooth> [bar]` |snap: held short/tall jumps on the opacity clock; smooth follows its cosine wave; off restores steady height apart from contraction. |
 | `ghost_height_min <0..1> [bar]` |.35: minimum fraction of the current glow/flare extension. Existing height settings are the maxima. |
@@ -168,7 +169,7 @@ Use `//eb preview heal` after changing tuning. `//eb heal_duration .6` slows the
 
 Every observed positive-HP->0% transition on a visible native bar can schedule one small white/gold glint at its unshaken left closing endpoint. It uses BarFiller2's actual horizontal/vertical gain-sparkle arm textures, unchanged. The long horizontal ray and shorter vertical ray bloom once and fade, independently of the finishing ghost. With an animated damage trail, the glint starts after its.15s collapse; without that trail, it starts immediately.
 
-It defaults on for every native bar role and remains independent of `ghost_hit`. Hide, aggro-row reflow, target switching and gauge recreation preserve its captured position and scalar settings; scene transitions and lifecycle cleanup cancel it. Repeated0% updates do not duplicate it. `//eb preview spark` isolates the glint; `//eb preview kill` combines it with the finishing ghost when the sparkle is enabled. Both previews show a20%->0% transition.
+It defaults on for every native bar role and remains independent of `ghost_hit`. Hide, aggro-row reflow, target switching and gauge recreation preserve its captured position and scalar settings; scene transitions and lifecycle cleanup cancel it. Repeated0% updates do not duplicate it. `//eb preview spark` isolates the glint; `//eb preview kill` shows the same 20%->0% finish and adds a ghost only if `ghost_threshold` is below 20. `//eb preview ghost 0` shows a one-hit kill with ghost and glint together.
 
 | Command after `//eb` | Default / meaning |
 | --- | --- |
@@ -223,7 +224,7 @@ Appearance commands: `width <pixels>`, `color <r> <g> <b>`, `background_alpha <0
 
 ## Verification and design notes
 
-Run all seven `tests/*_spec.lua` files under Lua5.1 from the repository root. Suites cover motion, rendering geometry, commands, dynamic curves/tint, recovery/death, detached glint timing/cleanup, and the real entry point with mocked client/rendering dependencies. They do not establish live Windower texture filtering, frame cadence or visual feel.
+Run all ten `tests/*_spec.lua` files under Lua5.1 from the repository root. Suites cover motion, rendering geometry, commands, dynamic curves/tint, recovery/death, the ghost threshold, detached glint timing/cleanup, distance, native-target hiding, factory layout, and the real entry point with mocked client/rendering dependencies. They do not establish live Windower texture filtering, frame cadence or visual feel.
 
 `WORKFLOW.md` was read directly from GitHub and compared with NPCMirror's canonical copy: identical blob `bc17a173c779a7b921aed1d4bf8c539368aa3730`. Shared formatting uses fragment colors140/167/200/207/0 via Windower chat; help is not echoed to the console. See `docs/ANIMATION.md` for references and `docs/DESIGN-NOTES.md` for proposed future refinements, kept separate from delivered behavior.
 
@@ -323,3 +324,9 @@ The new default `death_spark_style vivid` uses fuller arms and a brighter releas
 - Read the uploaded November 10 XML by overlaying Cioara's character settings on global values. Revised aggro stacking to up; main ghost 0px vertical lift, 1px downward drift, death spark H/V caps16px; target factory position 30px left of center. Retained screen-relative positioning, existing effects and Batch21 native target hiding.
 - Added `//eb defaults profile [t/st/ft/a/all]`, defaulting to all, to apply a deep-copied, resolution-aware factory profile explicitly to existing characters. Ordinary reload remains non-destructive; native-target hiding setting is preserved.
 - Updated entry-point and factory-layout regression specs and cumulative testing instructions. Live FFXI tests remain pending.
+
+### 2026-11-15 — Batch23 ghost threshold (`1.1.1-a.20261115.23`)
+
+- Detached ghosts now require one observed loss **strictly greater than 90 HP points** (new per-bar `ghost_threshold`, range 1..100). The previous "or any observed killing hit" rule and its small finishing chunks are removed; the closing death spark is unchanged and independent. Super shake still triggers at 75 points. Saved settings, positions and `settings.xml` are untouched: reloads merge the new default, and existing characters see 90 unless they set their own.
+- `//eb preview ghost [0..99] [bar]` now defaults to 100%->5% and accepts a chosen final HP (`0` is a one-hit kill), and reports the loss against the threshold. Help, status and tests report the new setting.
+- Tests: ghost-geometry specs that used 80-point hits are pinned to `ghost_threshold=75`; new specs cover the strict boundary (90 versus 91), kills from 20/50/90/91/95/100%, suppression, the setting's commands and preview forms. Three suites that were already failing at the Batch22 baseline were corrected (see TESTING.md). Live FFXI testing is pending.

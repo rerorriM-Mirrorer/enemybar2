@@ -22,8 +22,9 @@ package.preload.chat=function()
     return {}
 end
 _addon={version='test'}
+native_target={status=function() return 'mock' end,restore=function() end} -- status/hidetarget use it (Batch21)
 settings=require('defaultPreset')()
-for _,frame in pairs(settings) do frame.pos={x=460,y=688} end
+for _,frame in pairs(settings) do if type(frame)=='table' then frame.pos={x=460,y=688} end end -- skip hide_native_target (Batch21)
 local saved,recreated=0,0
 function settings:save() saved=saved+1 end
 function initialize_bars() recreated=recreated+1 end
@@ -46,8 +47,8 @@ local state={setup=false,in_cs=false}
 assert(loadstring(prelude..source:sub(first,last-1)))()
 assert(settings.target_bar.shake_style=='classic')
 assert(settings.target_bar.ghost_glow)
-assert(settings.target_bar.ghost_lift_up==1 and settings.target_bar.ghost_fade_duration==1)
-assert(settings.target_bar.ghost_drift_up==-2 and settings.target_bar.show_target)
+assert(settings.target_bar.ghost_lift_up==0 and settings.target_bar.ghost_fade_duration==1) -- Batch22 values
+assert(settings.target_bar.ghost_drift_up==-1 and settings.target_bar.show_target)
 assert(settings.target_bar.distance_style=='default' and settings.target_bar.distance_x==-24 and settings.target_bar.distance_y==9)
 assert(settings.target_bar.underbar_flare_height==45 and settings.target_bar.underbar_glow_alpha==50)
 assert(settings.target_bar.foreground_period==.1 and settings.target_bar.foreground_flash_alpha==0)
@@ -106,6 +107,18 @@ handle_command('preview','hp','50')
 assert(preview_args[2]==100 and preview_args[4]==50)
 handle_command('preview','ghost')
 assert(preview_args[2]==100 and preview_args[4]==nil)
+-- ghost previews: default final HP stays nil here (animationPreview picks 5), or a chosen 0..99.
+preview_args=nil
+handle_command('preview','ghost');assert(logs[#logs]:find('100%->5%',1,true) and logs[#logs]:find('loss 95',1,true))
+assert(logs[#logs]:find('more than 90',1,true))
+handle_command('preview','ghost','40');assert(preview_args[4]==40 and preview_args[5]=='ghost' and preview_args[6]==true)
+assert(logs[#logs]:find('loss 60',1,true))
+handle_command('preview','ghost','0','st');assert(preview_args[4]==0 and preview_args[6]==false)
+handle_command('preview','ghost','st');assert(preview_args[4]==nil and preview_args[5]=='ghost' and preview_args[6]==false)
+preview_args=nil
+handle_command('preview','ghost','100');handle_command('preview','ghost','-1');handle_command('preview','ghost','5.5')
+handle_command('preview','ghost','50','all');handle_command('preview','ghost','bogus')
+assert(preview_args==nil)
 handle_command('preview','kill')
 assert(preview_args[5]=='kill' and preview_args[6]==true)
 handle_command('preview','spark')
@@ -204,9 +217,25 @@ assert(settings.target_bar.distance_near==18 and settings.target_bar.distance_cl
 local previous_width=settings.target_bar.width
 handle_command('defaults','layout','all')
 assert(settings.target_bar.width==previous_width and settings.target_bar.pos.y==80)
-assert(settings.target_bar.pos.x==math.floor((1280-previous_width)/2))
+assert(settings.target_bar.pos.x==math.floor((1280-previous_width)/2)-30) -- Batch22: 30px left of center
 assert(settings.subtarget_bar.pos.x==430 and settings.subtarget_bar.pos.y==100)
 assert(settings.aggro_bar.pos.x==840 and settings.aggro_bar.pos.y==100)
+-- ghost_threshold: factory 90 on every bar, short forms, validation, and unsaved bad input.
+for _,name in ipairs({'target','subtarget','focustarget','aggro'}) do assert(settings[name..'_bar'].ghost_threshold==90) end
+handle_command('ghost_threshold','75')
+assert(settings.target_bar.ghost_threshold==75 and settings.aggro_bar.ghost_threshold==90)
+handle_command('ghost_threshold','80','all')
+for _,name in ipairs({'target','subtarget','focustarget','aggro'}) do assert(settings[name..'_bar'].ghost_threshold==80) end
+handle_command('ghost_threshold','95','a');assert(settings.aggro_bar.ghost_threshold==95)
+old=saved
+handle_command('ghost_threshold','0');handle_command('ghost_threshold','101');handle_command('ghost_threshold','abc')
+assert(saved==old and settings.target_bar.ghost_threshold==80)
+handle_command('ghost_threshold','a');assert(logs[#logs]:find('aggro ghost_threshold 95',1,true))
+handle_command('status');local found
+for _,line in ipairs(logs) do if line:find('needs loss > 80',1,true) then found=true end end
+assert(found)
+handle_command('defaults','animations','all')
+for _,name in ipairs({'target','subtarget','focustarget','aggro'}) do assert(settings[name..'_bar'].ghost_threshold==90) end
 handle_command('restart');handle_command('restart');handle_command('unload')
 assert(lifecycle_cleaned==1 and #lifecycle_commands==1 and lifecycle_commands[1]=='lua reload enemybar2')
 print('impact_commands_spec: defaults, forms, validation, reports and preserved tuning passed')

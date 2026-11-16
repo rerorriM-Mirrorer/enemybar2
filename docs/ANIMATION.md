@@ -95,3 +95,8 @@ The alternate critical foreground uses a neutral silhouette colored with indepen
 Underbar extension/width use the exposed interval divided by a reference percentage of inner gauge width. The ratio is clamped0..1, then separate positive height/width exponents drive interpolation from minimum to existing configured maximum. Width is additionally limited to half the interval; zero exposed width hides all decoration. This links repeated damage, trail shrink and dimensions without a separate timer or per-frame random jitter. Default height exponent.5 retains taller wisps while width exponent1 shrinks linearly.
 
 Shared help/lifecycle work follows the byte-identical canonical workflow: fragment-colored chat-only help, bare/unknown help, restart/unload cleanup dispatched once, and Ctrl-grid reminders. Right-Ctrl is recognized in addition to existing left-Ctrl snapping. No packet behavior or status tracking changes were added.
+
+
+## Batch 23 — ghost threshold
+
+The user asked that ghosts appear only for hits greater than 90% and chose the literal reading: the old "any observed positive-to-zero transition" clause is gone, so finishing chunks from 90% or lower no longer ghost. The trigger is one observed loss strictly greater than `ghost_threshold` percentage points (default 90, per bar, range 1..100), compared with a small floating-point tolerance so exactly 90 does not qualify. The 75-point super-shake trigger is a separate rule and was kept as requested. The death sparkle is independent of both. Observed loss is a single sample's difference and can combine several hits; no claim is made about individual attacks. No visual references were consulted for this change; it moves a trigger and leaves ghost motion, color and glow unchanged.

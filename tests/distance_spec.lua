@@ -29,6 +29,8 @@ windower={addon_path='./',get_windower_settings=function() return {ui_x_res=1280
 require('bars')
 local f=require('defaultPreset')().target_bar
 f.skin='classic';f.pos={x=400,y=500};f.width=400;f.font_size=14;f.show_dist=true
+-- This block checks the DistancePlus style and zero offsets; Batch22 factory main uses 'default' -24/+9.
+f.distance_style='distanceplus';f.distance_x=0;f.distance_y=0
 local b=bars.new(f,true)
 bars.update_target(b,'Target',80,22,1,123)
 assert(b.distance_text.dist=='22.0' and b.distance_text.font_size==12)

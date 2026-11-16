@@ -23,7 +23,8 @@ function preview.start(frame,x,y,hpp,mode,main_bar)
     local b=bars.new(options,main_bar~=false)
     local death=mode=='kill' or mode=='spark'
     local initial=mode=='heal' and 35 or (death and 20 or 100)
-    local final=mode=='heal' and 85 or (death and 0 or (hpp or 20))
+    -- A ghost preview must exceed the default 90-point threshold: 100%->5% unless chosen.
+    local final=mode=='heal' and 85 or (death and 0 or (hpp or (mode=='ghost' and 5 or 20)))
     bars.update_target(b,label,initial,0,nil,'preview')
     bars.show(b)
     bars.update_target(b,label,final,0,nil,'preview')

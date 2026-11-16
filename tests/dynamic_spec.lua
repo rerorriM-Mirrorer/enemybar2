@@ -60,7 +60,7 @@ g:destroy()
 -- White retention and legacy red fade use independent per-hit snapshots.
 for _,mode in ipairs({'white','trail'}) do
     now=0;o=settings.snapshot({ghost_fade_to=mode,ghost_contact_duration=0,ghost_lift_duration=0,
-        ghost_hover_duration=0,ghost_fade_duration=1,ghost_period=0,ghost_glow=false})
+        ghost_hover_duration=0,ghost_fade_duration=1,ghost_period=0,ghost_glow=false,ghost_threshold=75})
     g=gauge.new(100,{alpha=255,red=255,green=149,blue=151},{animation_duration=.18,
         ghost_hit=true,ghost_options=o,clock=function() return now end})
     g:set_value(1,true);g:show();local first=#all+1;g:set_value(.2,false)
@@ -73,7 +73,7 @@ for _,mode in ipairs({'white','trail'}) do
 end
 -- Height and glow opacity share one sampled phase, then can be uncoupled.
 now=0;o=settings.snapshot({ghost_contact_duration=0,ghost_lift_duration=0,
-    ghost_hover_duration=1,ghost_fade_duration=1,ghost_glow_duration=10})
+    ghost_hover_duration=1,ghost_fade_duration=1,ghost_glow_duration=10,ghost_threshold=75})
 g=gauge.new(100,{alpha=255,red=255,green=149,blue=151},{animation_duration=.18,
     ghost_hit=true,ghost_options=o,clock=function() return now end})
 g:set_value(1,true);g:show();local first=#all+1;g:set_value(.2,false)

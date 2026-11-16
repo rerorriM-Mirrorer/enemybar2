@@ -40,7 +40,7 @@ assert(loadfile('enemybar2.lua'))()
 local function event(name,...)
     for _,fn in ipairs(events[name] or {}) do fn(...) end
 end
-assert(_addon.version=='1.1.1-a.20261110.22' and target_bar and #aggro_bars==6)
+assert(_addon.version=='1.1.1-a.20261115.23' and target_bar and #aggro_bars==6)
 assert(settings.hide_native_target==true)
 assert(settings.target_bar.death_spark_h_cap==16 and settings.target_bar.death_spark_v_cap==16)
 assert(target_bar.main_bar and not subtarget_bar.main_bar and not focustarget_bar.main_bar and not aggro_bars[1].main_bar)
@@ -56,13 +56,14 @@ event('addon command','hidetarget','on');assert(settings.hide_native_target==tru
 event('addon command','help','layout');assert(logs[#logs][1]==0)
 event('addon command','setup','on');assert(logs[#logs][2]:find('Ctrl',1,true))
 -- Both Ctrl keys work; releasing one while the other is held retains snapping.
+local saved_before=saved -- hidetarget on/off above also save (Batch21); count only the drag
 event('keyboard',29,true);event('keyboard',157,true);event('keyboard',29,false)
 assert(drag_snap_key_down)
 event('mouse',1,target_bar.x,target_bar.y,0,false)
 event('mouse',0,target_bar.x+17,target_bar.y+13,0,false)
 assert(target_bar.x%10==0 and target_bar.y%10==0)
 event('mouse',2,target_bar.x,target_bar.y,0,false)
-assert(saved==1 and settings.target_bar.pos.x==target_bar.x)
+assert(saved==saved_before+1 and settings.target_bar.pos.x==target_bar.x)
 event('keyboard',157,false);assert(not drag_snap_key_down)
 local x,y=target_bar.x,target_bar.y
 event('addon command','defaults','animations')

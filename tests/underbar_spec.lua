@@ -71,14 +71,17 @@ g:set_value(.2,true);g:show();g:hide()
 for _,p in ipairs(g.trail_glow) do assert(not p._visible) end
 g:destroy();gauge.clear_ghosts()
 for _,p in ipairs(all) do assert(p.dead) end
--- Toggle avoids allocating the three glow primitives; threshold stays >=75.
+-- Toggle avoids allocating the three glow primitives; ghosts need a loss strictly over 90.
 o.underbar_glow=false
 g=gauge.new(100,{alpha=128,red=1,green=2,blue=3},{animation_duration=.18,
     effects=o,ghost_options=o,ghost_hit=true,clock=function() return now end})
 assert(not g.trail_glow)
 g:set_value(1,true);g:show();local count=#all
 g:set_value(.26,false);assert(#all==count)
-g:set_value(1,true);g:set_value(.25,false);assert(#all==count+6)
+g:set_value(1,true);g:set_value(.25,false);assert(#all==count) -- 75 points: below the new rule
+g:set_value(1,true);g:set_value(.11,false);assert(#all==count) -- 89 points
+g:set_value(1,true);g:set_value(.1,false);assert(#all==count) -- exactly 90: strictly greater needed
+g:set_value(1,true);g:set_value(.09,false);assert(#all==count+6) -- 91 points
 g:destroy();gauge.clear_ghosts()
 for _,p in ipairs(all) do assert(p.dead) end
 -- Preview HP mode keeps low-HP effects but suppresses the detached ghost.
@@ -92,6 +95,6 @@ preview.start(frame,100,200,5)
 assert(not calls.frame.ghost_hit and calls.frame.low_hp_pulse and calls[2][2]==5)
 assert(frame.ghost_hit and frame.pos.x==1)
 preview.start(frame,100,200)
-assert(calls.destroyed and calls.frame.ghost_hit and calls[4][2]==20)
+assert(calls.destroyed and calls.frame.ghost_hit and calls[4][2]==5) -- clears the 90-point threshold
 preview.clear()
 print('underbar_spec: edges, shrinking, colors, opacity, critical flash, threshold and cleanup passed')

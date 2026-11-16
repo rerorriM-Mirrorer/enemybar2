@@ -24,9 +24,10 @@ local function make(main,overrides)
         {animation_duration=.18,damage_trail=true,effects=o,ghost_options=o,
         ghost_hit=true,main_bar=main,clock=function() return now end})
 end
--- Positive->zero copies the remaining HP exactly once, even when both rules match.
-for _,hp in ipairs({.01,.2,.75,1}) do
-    local g=make(false)
+-- With the threshold lowered by the user, positive->zero still copies the remaining HP
+-- exactly once (the original finishing-chunk geometry). The default no longer does this.
+for _,hp in ipairs({.05,.2,.75,1}) do
+    local g=make(false,{ghost_threshold=1})
     g:set_value(hp,true);g:show()
     local first=#all+1
     g:set_value(0,false)
@@ -44,6 +45,33 @@ g:set_value(.01,false);assert(#all==count) -- small nonlethal hit
 g:set_value(0,true);assert(#all==count) -- identity/reset must not invent a kill
 g:set_value(.2,true);g:hide();g:set_value(0,false);assert(#all==count)
 g:destroy()
+-- Default threshold 90, literal rule: only a loss strictly greater than 90 points makes
+-- a ghost. A kill from 90% or less leaves just the closing spark (two arms).
+for _,case in ipairs({{.2,false},{.5,false},{.9,false},{.91,true},{.95,true},{1,true}}) do
+    local hp,ghost=case[1],case[2]
+    local k=make(false)
+    k:set_value(hp,true);k:show()
+    local first=#all+1
+    k:set_value(0,false)
+    assert(#all==first+(ghost and 7 or 1),'kill from '..hp)
+    k:destroy();gauge.clear_ghosts()
+end
+-- A big nonlethal hit still ghosts at the default; one just under it does not.
+do
+    local k=make(false);k:set_value(1,true);k:show();local first=#all+1
+    k:set_value(.09,false);assert(#all==first+5) -- 91-point loss, six ghost parts
+    k:set_value(1,true);local c=#all;k:set_value(.1,false);assert(#all==c) -- exactly 90: no ghost
+    k:destroy();gauge.clear_ghosts()
+end
+-- Raising the threshold to 100 or switching ghost_hit off suppresses the ghost; the spark stays.
+for _,extra in ipairs({{ghost_threshold=100},{}}) do
+    local k=make(false,extra)
+    if not extra.ghost_threshold then k.ghost_hit=false end
+    k:set_value(1,true);k:show();local first=#all+1;k:set_value(0,false)
+    assert(#all==first+1)
+    k:destroy();gauge.clear_ghosts()
+end
+for _,p in ipairs(all) do assert(p.dead) end
 -- Recovery follows both ends of the green interval and settles as fill catches up.
 now=0;g=make(true)
 g:move(100,200);g:set_value(.35,true);g:show();g:set_value(.85,false)
@@ -89,5 +117,12 @@ preview.start({},0,0,nil,'heal',false)
 assert(calls[3]==35 and calls[4]==85 and not calls.options.ghost_hit and not calls.main)
 preview.start({death_spark=false},0,0,nil,'spark',true)
 assert(calls[5]==20 and calls[6]==0 and calls.options.death_spark and not calls.options.ghost_hit)
+-- Ghost preview must exceed the default threshold: 100->5 by default, or the chosen HP.
+preview.start({},0,0,nil,'ghost',true)
+assert(calls[7]==100 and calls[8]==5 and calls.options.ghost_hit)
+preview.start({},0,0,0,'ghost',true)
+assert(calls[9]==100 and calls[10]==0 and calls.options.ghost_hit)
+preview.start({},0,0,40,'ghost',false)
+assert(calls[11]==100 and calls[12]==40 and not calls.main)
 preview.clear()
 print('recovery_death_spec: killing ghosts, main recovery, interruption, preview and cleanup passed')

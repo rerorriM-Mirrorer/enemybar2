@@ -25,7 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 _addon.name = 'enemybar2'
 _addon.author = 'mmckee,akaden,A'
-_addon.version = '1.1.1-a.20261110.22'
+_addon.version = '1.1.1-a.20261115.23'
 _addon.language = 'English'
 _addon.commands = {'enemybar','eb'}
 
@@ -496,15 +496,20 @@ function handle_command(c, ...)
     end
     if c=='preview' then
         if args[1]=='off' then animation_preview.clear();return end
-        local hpp=args[1]=='hp' and tonumber(args[2]) or nil
+        -- `preview ghost` optionally takes the chosen final HP (0..99) before the
+        -- bar, so thresholds and one-hit kills can be tried by hand.
+        local numeric_arg=args[1]=='hp' or (args[1]=='ghost' and tonumber(args[2])~=nil)
+        local hpp=numeric_arg and tonumber(args[2]) or nil
         -- Lua's a-and-b-or-c idiom falls through when b is nil: omitted HP
         -- preview frame must default to target, not reuse the HP argument.
         local frame_arg
-        if args[1]=='hp' then frame_arg=args[3] else frame_arg=args[2] end
+        if numeric_arg then frame_arg=args[3] else frame_arg=args[2] end
         local name=normalize_bar_name(frame_arg or 't')
+        local low,high=1,100
+        if args[1]=='ghost' then low,high=0,99 end
         if not S{'ghost','hp','heal','kill','spark'}:contains(args[1]) or not name or name=='all' or
-            (args[1]=='hp' and (not hpp or hpp<1 or hpp>100 or hpp~=math.floor(hpp))) then
-            windower.add_to_chat(123,'EnemyBar: preview ghost/heal/kill/spark [bar], preview hp <1..100> [bar], or preview off');return
+            (numeric_arg and (not hpp or hpp<low or hpp>high or hpp~=math.floor(hpp))) then
+            windower.add_to_chat(123,'EnemyBar: preview ghost [0..99] [bar], preview heal/kill/spark [bar], preview hp <1..100> [bar], or preview off');return
         end
         if state.in_cs then windower.add_to_chat(123,'EnemyBar: preview unavailable during cutscenes');return end
         local frame=settings[name..'_bar']
@@ -512,7 +517,14 @@ function handle_command(c, ...)
         local index=({target=1,subtarget=2,focustarget=3,aggro=4})[name]
         local b=bar_sets[index][1]
         animation_preview.start(frame,b.x,b.y,hpp,args[1],name=='target')
-        if hpp then windower.add_to_chat(207,'EnemyBar: '..name..' HP preview '..hpp..'% (8 seconds)') end
+        if args[1]=='hp' then windower.add_to_chat(207,'EnemyBar: '..name..' HP preview '..hpp..'% (8 seconds)') end
+        if args[1]=='ghost' then
+            -- Say why a ghost does or does not appear: the threshold is the usual surprise.
+            local final=hpp or 5
+            local needed=frame.ghost_threshold or animation_settings.defaults.ghost_threshold
+            windower.add_to_chat(207,string.format('EnemyBar: %s ghost preview 100%%->%g%% (loss %g; ghost needs more than %g)',
+                name,final,100-final,needed))
+        end
         return
     end
     local aliases={near='distance_near',far='distance_far',targetof='show_target',targeticon='show_target_icon',action='show_action',
@@ -614,8 +626,9 @@ function handle_command(c, ...)
                     tostring(f.healing_glow),f.healing_glow_alpha,f.healing_glow_height,
                     f.healing_flare_alpha,f.healing_flare_height,f.healing_flare_width))
             end
-            windower.add_to_chat(207,string.format('  trail alpha %g, pulse period %g, ghost %s',
-                f.trail_color.alpha,f.pulse_period,tostring(f.ghost_hit)))
+            windower.add_to_chat(207,string.format('  trail alpha %g, pulse period %g, ghost %s (needs loss > %g points)',
+                f.trail_color.alpha,f.pulse_period,tostring(f.ghost_hit),
+                f.ghost_threshold or animation_settings.defaults.ghost_threshold))
             windower.add_to_chat(207,string.format('  death sparkle %s: alpha %g, size %gpx, duration %gs',
                 tostring(f.death_spark),f.death_spark_alpha,f.death_spark_size,f.death_spark_duration))
             windower.add_to_chat(207,string.format('  spark style %s; horizontal/vertical thickness caps %g/%gpx',

@@ -113,11 +113,15 @@ function methods:set_value(value, immediate)
     -- Snapshot the lost segment before identity/reset or later movement can change it.
     local loss=self.target_value-value
     local killing_hit=self.target_value>0 and value==0
-    if not immediate and self.visible and self.ghost_hit and
-        (loss>=.75-1e-9 or killing_hit) then
+    -- A ghost needs a loss strictly greater than ghost_threshold HP points. A kill
+    -- no longer qualifies by itself; the closing spark below stays independent.
+    local ghost_loss=self.ghost_options.ghost_threshold/100
+    if not immediate and self.visible and self.ghost_hit and loss>ghost_loss+1e-9 then
         local tint=self.trail_color or {red=167,green=57,blue=96,alpha=200}
         local g={x=self.x+6+(self.width-12)*value,y=self.y+1,
             width=(self.width-12)*(self.target_value-value),born=self.clock(),clock=self.clock,tint=tint,
+            -- Reference stays .75 so a threshold lowered below it keeps smaller
+            -- ghosts proportionally smaller; every loss above .75 scales to 1.
             size_scale=math.sqrt(math.min(1,loss/.75)),
             alpha=(self.color.alpha or 255)*self.ghost_options.ghost_alpha/255,
             options=animation_settings.snapshot(self.ghost_options)}

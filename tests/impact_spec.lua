@@ -7,6 +7,8 @@ local function close(a,b) assert(math.abs(a-b)<1e-7,tostring(a)..' ~= '..tostrin
 local now=0
 local function options(extra)
     local o=settings.snapshot(extra or {})
+    -- Geometry tests here predate ghost_threshold=90; keep their 80-point hits ghosting.
+    o.ghost_threshold=extra and extra.ghost_threshold or 75
     o.hit_shake=true;o.ghost_hit=true;o.text_effect=true;o.healing_effect=true
     o.low_hp_pulse=true;o.super_settle='both'
     return o

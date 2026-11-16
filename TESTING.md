@@ -1,3 +1,45 @@
+# Current testing batch — Batch23 ghost threshold (2026-11-15)
+
+- **Repository/branch:** none. This work started from the uploaded `enemybar2-snapshot-2026-11-15.zip`, which has no git history, and no repository access was used. **No commit or push was made.** Suggested branch when committing: `ghost-threshold-2026-11-15`, based on the Batch22 branch `cioara-defaults-2026-11-10`. Do not merge to `master` before live verification.
+- **Request/source:** the user asked that ghost hits appear only on hits greater than 90%, chose the **literal rule** (the old "any observed kill" clause is removed), asked to **keep super shake as is**, and asked that **no settings file be changed**. The user will try ghost-setting adjustments on Cioara first; making the main bar's ghost values uniform across bars and making Cioara's settings global are the user's own manual follow-ups, not part of this batch.
+- **Behavior changes:**
+  - New per-bar `ghost_threshold` (default 90, range 1..100, HP percentage points). A detached ghost needs one observed loss **strictly greater** than it, compared with a 1e-9 tolerance, so exactly 90 does not qualify (FFXI integer HP% means 91 or more).
+  - The `or killing_hit` clause is gone, so finishing chunks and kills from 90% or lower no longer ghost. A one-hit kill from full health (loss 100) still does. The closing death spark is independent and unchanged.
+  - Super shake still triggers at loss >= 75 with `ghost_hit` (healthMotion.lua untouched). Ghost size scaling still references 75, so it is always full size at the default.
+  - `//eb preview ghost [0..99] [bar]` now defaults to 100%->5% (the old 100%->20% would no longer ghost) and takes a final HP; `0` shows a one-hit kill. Chat reports the loss against the threshold. `preview kill` still plays 20%->0%.
+  - Help and `//eb status` report the threshold; `defaults animations` and `defaults profile` carry it through the preset.
+- **Code:** `animationSettings.lua`, `ffxiGauge.lua`, `defaultPreset.lua`, `animationPreview.lua`, `enemybar2.lua`, `helpText.lua`, `README.md`, `docs/ANIMATION.md`, `TESTING.md`, and specs `impact`, `dynamic`, `recovery_death`, `underbar`, `impact_commands`, `entrypoint`, `distance`. Version `1.1.1-a.20261115.23`. Not changed: `healthMotion.lua`, `ghostMotion.lua`, `deathSpark.lua`, `cioaraPreset.lua`, assets, `data/`.
+- **Packaging:** the ZIP contains the addon folder **without `data/`**, with `WORKFLOW.md`, `TESTING.md` and `README.md` inside it. Overlay it on the installed addon and reload; existing `settings.xml` is not shipped or modified by this batch. A character's saved file gains `ghost_threshold` only when a command next saves.
+- **Verification (offline, not game):** all ten suites in `tests/` were run under Lua 5.1 (`lupa.lua51`, each spec from the addon root) after the change and pass. New coverage: the strict boundary at 89/90/91 points, kills from 20/50/90/91/95/100%, one-hit kill ghost plus spark, suppression by threshold 100 and by `ghost_hit` off, a lowered threshold restoring finishing-chunk geometry, the command forms and validation, the status line, `defaults animations` resetting to 90, and the preview forms. A mutation check (original `ffxiGauge.lua` swapped back in) makes the new `recovery_death` and `underbar` assertions fail, so they do exercise the rule. Older ghost-geometry specs that used 80-point hits now set `ghost_threshold=75` explicitly so they still test the same geometry.
+- **Baseline finding:** the Batch22 record said the Lua 5.1 runner was unavailable. Running the suites on the Batch22 snapshot unchanged gave seven passing and three failing: `distance_spec`, `entrypoint_spec`, `impact_commands_spec`. Each failure was a stale test expectation, not addon behavior: the preset gained a non-table `hide_native_target` (Batch21) and a status call needs a `native_target` mock; `saved==1` ignored the saves made by `hidetarget on/off`; the spec still expected Batch21 ghost values (lift 1, drift -2) and a centered main x rather than 30px left (Batch22); and the distance spec assumed the DistancePlus style and zero offsets that the Batch22 main preset no longer uses. Only the specs were edited to fix these.
+- **Not verified:** any live FFXI behavior; that existing characters' saved settings pick up the default 90 on reload (expected from Windower's config merge, untested); how the preview and real hits look and feel; whether combined HP updates in real fights land above or below 90 as expected.
+
+### Batch23 focused tests
+
+1. Install over the existing addon without touching `data/`. Reload. `//eb ghost_threshold` should report 90 for the main bar; `//eb ghost_threshold a` and `st`/`ft` should report 90 too; `//eb status` shows "needs loss > 90 points".
+2. `//eb preview ghost`: ghost appears (95-point loss) and chat says loss 95, more than 90. `//eb preview ghost 10`: exactly 90, **no ghost**, though the super shake still plays. `//eb preview ghost 9`: ghost. `//eb preview ghost 0`: ghost plus the closing spark. `//eb preview ghost 40 st` and `100`/`-1`/`5.5`/`50 all` are accepted or rejected as the help text says.
+3. `//eb preview kill`: red trail collapse and spark only, **no ghost**. Then `//eb ghost_threshold 15` and `//eb preview kill` again: the finishing chunk returns. Restore `//eb ghost_threshold 90`.
+4. Real fights on the main bar: a heavy hit from high HP to under 10% ghosts; ordinary kills from lower HP do not (spark still appears); a 75 to 90 point hit shakes without a ghost. Record whether a "one hit" ever reports as two updates summing differently.
+5. Try `//eb ghost_threshold 75 all`, then restore with `//eb ghost_threshold 90 all`. `//eb defaults animations` also returns to 90.
+6. Confirm other tuning is unchanged: `//eb status` before and after should differ only in the added threshold. Restart, unload, zoning, target switching and previews clean up as before.
+
+**Rollback:** install the Batch22 files again. A saved `ghost_threshold` key is ignored by Batch22.
+
+## Cumulative Batch23 delivery record
+
+| Date | Batch | Artifact | Branch / commit | Verification |
+| --- | --- | --- | --- | --- |
+| 2026-11-15 | 23 | EnemyBar2 addon folder without `data/`, plus a patch against the uploaded snapshot | none; no commit or push | Ten Lua 5.1 specs pass offline (lupa); live FFXI pending |
+
+Earlier delivery records follow below and are unchanged.
+
+## Batch23 user-supplied material
+
+- `enemybar2-snapshot-2026-11-15.zip` — the user's working snapshot, including the user's `data/settings.xml`. It was read but not modified, and is not part of the delivery.
+- Requests recorded in the order given: copy the main bar's ghost values to all bars and make Cioara's settings the global ones (deferred by the user, to be done manually); ghost hits only above 90%, literal rule, super shake unchanged, settings file untouched.
+
+---
+
 # Current testing batch — Batch22 Cioara defaults (2026-11-10)
 
 - **Repository/branch:** `rerorriM-Mirrorer/enemybar2` / `cioara-defaults-2026-11-10`, based on the user-approved native-hide development branch `feature/native-target-hide-2026-11-09` at commit `105178747ca62f8906a9e96ca400862923eaefab`. Do not merge to `master` before live verification.
