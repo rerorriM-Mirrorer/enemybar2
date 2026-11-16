@@ -1,6 +1,6 @@
 # Current testing batch — Batch23 ghost threshold (2026-11-15)
 
-- **Repository/branch:** none. This work started from the uploaded `enemybar2-snapshot-2026-11-15.zip`, which has no git history, and no repository access was used. **No commit or push was made.** Suggested branch when committing: `ghost-threshold-2026-11-15`, based on the Batch22 branch `cioara-defaults-2026-11-10`. Do not merge to `master` before live verification.
+- **Repository/branch:** `rerorriM-Mirrorer/enemybar2` / `ghost-threshold-2026-11-15`, based on the Batch22 branch `cioara-defaults-2026-11-10` at `1db1eda`; feature commit `6322d6c`. The work started from the uploaded `enemybar2-snapshot-2026-11-15.zip`, which has no git history. ~~**No commit or push was made.** Do not merge to `master` before live verification.~~ Correction (2026-11-15): committed and pushed after the user's live report below, and `master` was fast-forwarded to this branch's tip; see "Live acceptance and master advance".
 - **Request/source:** the user asked that ghost hits appear only on hits greater than 90%, chose the **literal rule** (the old "any observed kill" clause is removed), asked to **keep super shake as is**, and asked that **no settings file be changed**. The user will try ghost-setting adjustments on Cioara first; making the main bar's ghost values uniform across bars and making Cioara's settings global are the user's own manual follow-ups, not part of this batch.
 - **Behavior changes:**
   - New per-bar `ghost_threshold` (default 90, range 1..100, HP percentage points). A detached ghost needs one observed loss **strictly greater** than it, compared with a 1e-9 tolerance, so exactly 90 does not qualify (FFXI integer HP% means 91 or more).
@@ -12,7 +12,15 @@
 - **Packaging:** the ZIP contains the addon folder **without `data/`**, with `WORKFLOW.md`, `TESTING.md` and `README.md` inside it. Overlay it on the installed addon and reload; existing `settings.xml` is not shipped or modified by this batch. A character's saved file gains `ghost_threshold` only when a command next saves.
 - **Verification (offline, not game):** all ten suites in `tests/` were run under Lua 5.1 (`lupa.lua51`, each spec from the addon root) after the change and pass. New coverage: the strict boundary at 89/90/91 points, kills from 20/50/90/91/95/100%, one-hit kill ghost plus spark, suppression by threshold 100 and by `ghost_hit` off, a lowered threshold restoring finishing-chunk geometry, the command forms and validation, the status line, `defaults animations` resetting to 90, and the preview forms. A mutation check (original `ffxiGauge.lua` swapped back in) makes the new `recovery_death` and `underbar` assertions fail, so they do exercise the rule. Older ghost-geometry specs that used 80-point hits now set `ghost_threshold=75` explicitly so they still test the same geometry.
 - **Baseline finding:** the Batch22 record said the Lua 5.1 runner was unavailable. Running the suites on the Batch22 snapshot unchanged gave seven passing and three failing: `distance_spec`, `entrypoint_spec`, `impact_commands_spec`. Each failure was a stale test expectation, not addon behavior: the preset gained a non-table `hide_native_target` (Batch21) and a status call needs a `native_target` mock; `saved==1` ignored the saves made by `hidetarget on/off`; the spec still expected Batch21 ghost values (lift 1, drift -2) and a centered main x rather than 30px left (Batch22); and the distance spec assumed the DistancePlus style and zero offsets that the Batch22 main preset no longer uses. Only the specs were edited to fix these.
-- **Not verified:** any live FFXI behavior; that existing characters' saved settings pick up the default 90 on reload (expected from Windower's config merge, untested); how the preview and real hits look and feel; whether combined HP updates in real fights land above or below 90 as expected.
+- **Not verified:** ~~any live FFXI behavior~~ (see the live report below, which is general); that existing characters' saved settings pick up the default 90 on reload (expected from Windower's config merge, untested); how the preview and real hits look and feel; whether combined HP updates in real fights land above or below 90 as expected.
+
+### Live acceptance and master advance — 2026-11-15
+
+- **User report:** after running the Batch23 patch in game, the user reported it is "working great", said "I trust it", and asked that it all be pushed and merged to `master`.
+- **Interpretation:** a general acceptance of the Batch23 build on the user's setup. No game logs, screenshots or per-item results were provided, so do **not** infer that each focused test below was run; in particular the default-90 merge into already-saved characters and 75-to-90 point hits are not individually recorded.
+- **Master decision:** on that basis the user chose to advance `master` over the whole line (Batches 10 to 23). Live acceptance recorded for individual batches in the line is partial: Batch13 praised and Batch18 accepted earlier; Batches 14, 15, 19, 20 and 22 have no separate acceptance recorded, and Batch21 has the earlier first-in-game acceptance with lifecycle checks still listed as pending. The line has been in use since, as the user's saved settings show Batch21/22 keys, but that is not a test record.
+- **Master advance:** `master` (`fb5373e`, version 1.1.0) was fast-forwarded to this branch's tip, with no conflicts. Tags were added so the earlier states stay recoverable: `v1.1.0` (old master), `batch22-cioara-defaults-2026-11-10` (`1db1eda`), `archive-ffxi-bar-skin-2026-10-07` (the diverged early branch, which has `tools/build_skin.py` and the texture provenance files found nowhere else) and `batch23-ghost-threshold-2026-11-15` (the new master). `data/` is now in `.gitignore` so a character's saved settings cannot be committed by accident.
+- **Remaining pending:** the focused tests below as separate checks, and the Batch21 lifecycle checks.
 
 ### Batch23 focused tests
 
@@ -29,7 +37,7 @@
 
 | Date | Batch | Artifact | Branch / commit | Verification |
 | --- | --- | --- | --- | --- |
-| 2026-11-15 | 23 | EnemyBar2 addon folder without `data/`, plus a patch against the uploaded snapshot | none; no commit or push | Ten Lua 5.1 specs pass offline (lupa); live FFXI pending |
+| 2026-11-15 | 23 | EnemyBar2 addon folder without `data/`, plus a patch against the uploaded snapshot | `ghost-threshold-2026-11-15`, feature commit `6322d6c`; `master` fast-forwarded to the tip | Ten Lua 5.1 specs pass offline (lupa); user-reported live use "working great" (general) |
 
 Earlier delivery records follow below and are unchanged.
 
