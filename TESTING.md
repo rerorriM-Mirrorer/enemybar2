@@ -1,3 +1,9 @@
+## Current Development Status — 2026-11-20 (America/Chicago)
+
+- Docs sync to canon 2026-11-20.1 (`agents_shared_version` and `workflow_version`); project-specific lines moved to the AGENTS REPO block: none; no runtime change, no FFXI test.
+
+---
+
 # Current testing batch — Batch23 ghost threshold (2026-11-15)
 
 - **Repository/branch:** `rerorriM-Mirrorer/enemybar2` / `ghost-threshold-2026-11-15`, based on the Batch22 branch `cioara-defaults-2026-11-10` at `1db1eda`; feature commit `6322d6c`. The work started from the uploaded `enemybar2-snapshot-2026-11-15.zip`, which has no git history. ~~**No commit or push was made.** Do not merge to `master` before live verification.~~ Correction (2026-11-15): committed and pushed after the user's live report below, and `master` was fast-forwarded to this branch's tip; see "Live acceptance and master advance".
